@@ -5,7 +5,7 @@ defineProps<{
 
 defineEmits<{
   (e: 'keep', photoId: number): void
-  (e: 'delete', photoId: number): void
+  (e: 'delete', filePath: string): void
 }>()
 
 function formatSize(bytes: number): string {
@@ -35,7 +35,7 @@ function formatSize(bytes: number): string {
                   class="px-3 py-1 text-xs rounded-md bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors">
             保留
           </button>
-          <button @click="$emit('delete', photo.id)"
+          <button @click="$emit('delete', photo.file_path)"
                   class="px-3 py-1 text-xs rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">
             删除
           </button>
