@@ -1,5 +1,19 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
+import { createDatabase } from './db/database'
+import { registerPhotoIpc } from './ipc/photos'
+import { registerAlbumIpc } from './ipc/albums'
+import { registerCleanupIpc } from './ipc/cleanup'
+import { registerSettingsIpc } from './ipc/settings'
+import { setThumbnailDir } from './services/thumbnail'
+
+const db = createDatabase()
+registerPhotoIpc(db)
+registerAlbumIpc(db)
+registerCleanupIpc(db)
+registerSettingsIpc(db)
+
+setThumbnailDir(join(app.getPath('userData'), 'thumbnails'))
 
 function createWindow() {
   const win = new BrowserWindow({
