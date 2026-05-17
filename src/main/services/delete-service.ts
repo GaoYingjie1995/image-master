@@ -5,7 +5,7 @@ import { createSettingsRepo } from '../db/settings-repo'
 import { getThumbnailDir } from './thumbnail'
 import { getFileNameWithoutExt } from '../utils/path-utils'
 import { dirname, join } from 'path'
-import { unlink } from 'fs/promises'
+import { readdir, unlink } from 'fs/promises'
 
 const RAW_EXTENSIONS = ['cr2', 'cr3', 'nef', 'arw', 'orf', 'raf', 'dng', 'pef', 'srw', 'rw2']
 
@@ -59,6 +59,17 @@ export async function deletePhotos(db: Database.Database, ids: number[]): Promis
     try {
       await unlink(join(thumbDir, `${id}.webp`))
     } catch { /* 缩略图不存在则忽略 */ }
+    try {
+      const files = await readdir(thumbDir)
+      const prefix = `${id}-`
+      for (const file of files) {
+        if (file.startsWith(prefix) && file.endsWith('.webp')) {
+          try {
+            await unlink(join(thumbDir, file))
+          } catch { /* ignore single file unlink errors */ }
+        }
+      }
+    } catch { /* ignore directory read errors */ }
   }
 
   // 只删除成功移入回收站的数据库记录

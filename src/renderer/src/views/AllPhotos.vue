@@ -22,8 +22,18 @@ const selection = useSelectionStore()
 const toast = useToastStore()
 const { t } = useI18n()
 
-const previewIndex = ref(-1)
+const previewPhotoId = ref<number | null>(null)
 const showPreview = ref(false)
+
+const previewPhoto = computed(() => {
+  if (previewPhotoId.value === null) return null
+  return photosStore.photos.find(p => p.id === previewPhotoId.value) || null
+})
+
+const previewIndex = computed(() => {
+  if (previewPhotoId.value === null) return -1
+  return photosStore.photos.findIndex(p => p.id === previewPhotoId.value)
+})
 
 function loadPhotos() {
   const name = route.name as string
@@ -49,8 +59,8 @@ watch(
   { immediate: true }
 )
 
-function openPreview(index: number) {
-  previewIndex.value = index
+function openPreview(id: number) {
+  previewPhotoId.value = id
   showPreview.value = true
 }
 
@@ -59,11 +69,15 @@ function closePreview() {
 }
 
 function prevPhoto() {
-  if (previewIndex.value > 0) previewIndex.value--
+  if (previewIndex.value > 0) {
+    previewPhotoId.value = photosStore.photos[previewIndex.value - 1].id
+  }
 }
 
 function nextPhoto() {
-  if (previewIndex.value < photosStore.photos.length - 1) previewIndex.value++
+  if (previewIndex.value < photosStore.photos.length - 1) {
+    previewPhotoId.value = photosStore.photos[previewIndex.value + 1].id
+  }
 }
 
 async function handleRate(id: number, rating: number) {
@@ -71,15 +85,15 @@ async function handleRate(id: number, rating: number) {
 }
 
 async function handleColorLabel(label: string | null) {
-  const photo = photosStore.photos[previewIndex.value]
-  if (photo) await photosStore.updateColorLabel(photo.id, label)
+  if (previewPhoto.value) {
+    await photosStore.updateColorLabel(previewPhoto.value.id, label)
+  }
 }
 
 async function handleReject() {
-  const photo = photosStore.photos[previewIndex.value]
-  if (photo) {
-    await window.electronAPI.photos.updateRejected(photo.id, !photo.is_rejected)
-    photo.is_rejected = photo.is_rejected ? 0 : 1
+  if (previewPhoto.value) {
+    await window.electronAPI.photos.updateRejected(previewPhoto.value.id, !previewPhoto.value.is_rejected)
+    previewPhoto.value.is_rejected = previewPhoto.value.is_rejected ? 0 : 1
   }
 }
 
@@ -310,12 +324,12 @@ const contextMenuItems = computed<MenuItem[]>(() => {
                  @rate="handleRate"
                  @load-more="photosStore.fetchNextPage"
                  @contextmenu="handleContextMenu" />
-      <PhotoPreview :photo="photosStore.photos[previewIndex] || null"
+      <PhotoPreview :photo="previewPhoto"
                     :visible="showPreview"
                     @close="closePreview"
                     @prev="prevPhoto"
                     @next="nextPhoto"
-                    @rate="(r) => photosStore.photos[previewIndex] && handleRate(photosStore.photos[previewIndex].id, r)"
+                    @rate="(r) => previewPhoto && handleRate(previewPhoto.id, r)"
                     @color-label="handleColorLabel"
                     @reject="handleReject" />
 

@@ -2,7 +2,7 @@ import { ipcMain, dialog, BrowserWindow, shell } from 'electron'
 import Database from 'better-sqlite3'
 import { createPhotoRepo } from '../db/photo-repo'
 import { scanFolder } from '../services/scanner'
-import { getThumbnailPath, generateThumbnail, getCacheSize, clearCache } from '../services/thumbnail'
+import { getThumbnailPath, getThumbnailPathForPhoto, generateThumbnail, getCacheSize, clearCache } from '../services/thumbnail'
 import { batchRename, batchExport } from '../services/batch-operations'
 import { computeHistogram } from '../services/histogram'
 import { deletePhotos } from '../services/delete-service'
@@ -91,12 +91,20 @@ export function registerPhotoIpc(db: Database.Database) {
     const photo = repo.getById(photoId)
     if (!photo) return null
 
-    const thumbPath = await getThumbnailPath(photoId)
+    const thumbPath = await getThumbnailPathForPhoto(photoId, photo.file_path)
     try {
       const { access } = await import('fs/promises')
       await access(thumbPath)
     } catch {
       await generateThumbnail(photo.file_path, thumbPath)
+      // 兼容清理旧版仅按 photoId 命名的缓存文件，避免误命中历史缩略图
+      try {
+        const { unlink } = await import('fs/promises')
+        const legacyPath = await getThumbnailPath(photoId)
+        if (legacyPath !== thumbPath) {
+          await unlink(legacyPath)
+        }
+      } catch { /* ignore */ }
     }
 
     return thumbPath

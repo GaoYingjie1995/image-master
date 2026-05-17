@@ -1,6 +1,7 @@
 import sharp from 'sharp'
 import { join } from 'path'
 import { mkdir, access, readdir, stat, unlink } from 'fs/promises'
+import { createHash } from 'crypto'
 
 const THUMB_SIZE = 300
 const THUMB_QUALITY = 80
@@ -24,6 +25,16 @@ export async function ensureThumbnailDir(): Promise<string> {
 export async function getThumbnailPath(photoId: number): Promise<string> {
   const dir = await ensureThumbnailDir()
   return join(dir, `${photoId}.webp`)
+}
+
+function hashFilePath(filePath: string): string {
+  return createHash('sha1').update(filePath).digest('hex').slice(0, 12)
+}
+
+export async function getThumbnailPathForPhoto(photoId: number, filePath: string): Promise<string> {
+  const dir = await ensureThumbnailDir()
+  const fileKey = hashFilePath(filePath)
+  return join(dir, `${photoId}-${fileKey}.webp`)
 }
 
 export async function generateThumbnail(filePath: string, outputPath: string): Promise<void> {

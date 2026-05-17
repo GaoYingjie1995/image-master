@@ -4,3 +4,9 @@ out/
 .superpowers/
 .DS_Store
 *.log
+.claude
+.idea
+.vscode
+.codex
+.cursor
+.pnpm-store

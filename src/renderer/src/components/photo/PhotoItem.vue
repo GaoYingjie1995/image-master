@@ -3,9 +3,12 @@ import { ref, watch } from 'vue'
 import RatingStars from '../common/RatingStars.vue'
 import { createLocalFileUrl } from '@shared/local-protocol'
 
+const thumbUrlCache = new Map<string, string>()
+
 const props = defineProps<{
   photo: {
     id: number
+    file_path: string
     file_name: string
     file_size: number
     format: string
@@ -43,12 +46,27 @@ const COLOR_MAP: Record<string, string> = {
 }
 
 const thumbUrl = ref<string>('')
+let thumbRequestToken = 0
 
-watch(() => props.photo.id, async (id) => {
+watch(() => [props.photo.id, props.photo.file_path] as const, async ([id, filePath]) => {
+  const requestToken = ++thumbRequestToken
   thumbUrl.value = ''
+
+  const cacheKey = `${id}:${filePath}`
+  const cachedUrl = thumbUrlCache.get(cacheKey)
+  if (cachedUrl) {
+    thumbUrl.value = cachedUrl
+    return
+  }
+
   if (window.electronAPI) {
     const path = await window.electronAPI.photos.getThumbnail(id)
-    if (path) thumbUrl.value = createLocalFileUrl('local-thumbnail', path)
+    if (requestToken !== thumbRequestToken) return
+    if (path) {
+      const url = createLocalFileUrl('local-thumbnail', path)
+      thumbUrlCache.set(cacheKey, url)
+      thumbUrl.value = url
+    }
   }
 }, { immediate: true })
 
