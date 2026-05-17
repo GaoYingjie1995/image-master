@@ -64,8 +64,17 @@ CREATE INDEX IF NOT EXISTS idx_photos_format ON photos(format);
 `
 
 export function createDatabase(dbPath?: string): Database.Database {
-  const path = dbPath || ':memory:'
-  const db = new Database(path)
+  if (!dbPath) {
+    // 动态导入 app 以支持测试环境（测试时传入 dbPath）
+    try {
+      const { app } = require('electron')
+      const { join } = require('path')
+      dbPath = join(app.getPath('userData'), 'image-master.db')
+    } catch {
+      dbPath = ':memory:'
+    }
+  }
+  const db = new Database(dbPath)
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
   db.exec(SCHEMA)

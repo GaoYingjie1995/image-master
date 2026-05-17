@@ -3,11 +3,19 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
 
+  window: {
+    minimize: () => ipcRenderer.send('window:minimize'),
+    maximize: () => ipcRenderer.send('window:maximize'),
+    close: () => ipcRenderer.send('window:close')
+  },
+
   photos: {
     getAll: (options?: unknown) => ipcRenderer.invoke('photos:getAll', options),
     getById: (id: number) => ipcRenderer.invoke('photos:getById', id),
     getToday: () => ipcRenderer.invoke('photos:getToday'),
     count: () => ipcRenderer.invoke('photos:count'),
+    countFiltered: (filter?: string, search?: string, albumId?: number) => ipcRenderer.invoke('photos:countFiltered', filter, search, albumId),
+    getIdsByFilter: (options?: { filter?: string; search?: string; albumId?: number }) => ipcRenderer.invoke('photos:getIdsByFilter', options),
     updateRating: (id: number, rating: number) => ipcRenderer.invoke('photos:updateRating', id, rating),
     batchUpdateRating: (ids: number[], rating: number) => ipcRenderer.invoke('photos:batchUpdateRating', ids, rating),
     updateColorLabel: (id: number, label: string | null) => ipcRenderer.invoke('photos:updateColorLabel', id, label),
@@ -16,8 +24,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
     importFolder: () => ipcRenderer.invoke('photos:importFolder'),
     getThumbnail: (photoId: number) => ipcRenderer.invoke('photos:getThumbnail', photoId),
     onScanProgress: (callback: (data: { current: number; total: number }) => void) => {
-      ipcRenderer.on('photos:scanProgress', (_e, data) => callback(data))
-    }
+      const handler = (_e: Electron.IpcRendererEvent, data: { current: number; total: number }) => callback(data)
+      ipcRenderer.on('photos:scanProgress', handler)
+      return () => { ipcRenderer.removeListener('photos:scanProgress', handler) }
+    },
+    batchRename: (ids: number[], template: string, startSeq?: number) => ipcRenderer.invoke('photos:batchRename', ids, template, startSeq),
+    batchExport: (ids: number[], options: unknown) => ipcRenderer.invoke('photos:batchExport', ids, options),
+    selectExportDir: () => ipcRenderer.invoke('photos:selectExportDir'),
+    onExportProgress: (callback: (data: { current: number; total: number }) => void) => {
+      const handler = (_e: Electron.IpcRendererEvent, data: { current: number; total: number }) => callback(data)
+      ipcRenderer.on('photos:exportProgress', handler)
+      return () => { ipcRenderer.removeListener('photos:exportProgress', handler) }
+    },
+    getWithGps: (options?: { dateFrom?: string; dateTo?: string }) => ipcRenderer.invoke('photos:getWithGps', options),
+    getHistogram: (photoId: number) => ipcRenderer.invoke('photos:getHistogram', photoId),
+    showInFolder: (filePath: string) => ipcRenderer.invoke('photos:showInFolder', filePath),
+    getCacheSize: () => ipcRenderer.invoke('photos:getCacheSize'),
+    clearCache: () => ipcRenderer.invoke('photos:clearCache'),
+    rescanMetadata: () => ipcRenderer.invoke('photos:rescanMetadata')
   },
 
   albums: {
@@ -26,7 +50,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     delete: (id: number) => ipcRenderer.invoke('albums:delete', id),
     rename: (id: number, name: string) => ipcRenderer.invoke('albums:rename', id, name),
     addPhoto: (albumId: number, photoId: number, photoPath: string) => ipcRenderer.invoke('albums:addPhoto', albumId, photoId, photoPath),
-    getPhotos: (albumId: number) => ipcRenderer.invoke('albums:getPhotos', albumId)
+    addPhotos: (albumId: number, photoIds: number[]) => ipcRenderer.invoke('albums:addPhotos', albumId, photoIds),
+    removePhoto: (albumId: number, photoId: number) => ipcRenderer.invoke('albums:removePhoto', albumId, photoId),
+    getPhotoCount: (albumId: number) => ipcRenderer.invoke('albums:getPhotoCount', albumId),
+    getAllPhotoCounts: () => ipcRenderer.invoke('albums:getAllPhotoCounts'),
+    getPhotos: (albumId: number) => ipcRenderer.invoke('albums:getPhotos', albumId),
+    createSmart: (name: string, rules: string) => ipcRenderer.invoke('smartAlbums:create', name, rules),
+    getAllSmart: () => ipcRenderer.invoke('smartAlbums:getAll'),
+    deleteSmart: (id: number) => ipcRenderer.invoke('smartAlbums:delete', id),
+    renameSmart: (id: number, name: string) => ipcRenderer.invoke('smartAlbums:rename', id, name),
+    updateSmart: (id: number, name: string, rules: string) => ipcRenderer.invoke('smartAlbums:update', id, name, rules),
+    getSmartPhotos: (albumId: number) => ipcRenderer.invoke('smartAlbums:getPhotos', albumId)
   },
 
   cleanup: {
@@ -35,7 +69,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     findOrphanedRaws: (folderPath: string) => ipcRenderer.invoke('cleanup:findOrphanedRaws', folderPath),
     selectFolder: () => ipcRenderer.invoke('cleanup:selectFolder'),
     onProgress: (callback: (data: { phase: string; current: number; total: number }) => void) => {
-      ipcRenderer.on('cleanup:progress', (_e, data) => callback(data))
+      const handler = (_e: Electron.IpcRendererEvent, data: { phase: string; current: number; total: number }) => callback(data)
+      ipcRenderer.on('cleanup:progress', handler)
+      return () => { ipcRenderer.removeListener('cleanup:progress', handler) }
     }
   },
 

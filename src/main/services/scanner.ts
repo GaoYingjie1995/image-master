@@ -1,5 +1,5 @@
 import { readdir, stat } from 'fs/promises'
-import { join, extname } from 'path'
+import { join, extname, basename } from 'path'
 import { isImage, getFormat } from '../utils/file-types'
 import { parseExif } from './exif-parser'
 
@@ -29,11 +29,18 @@ interface PhotoInsertData {
 }
 
 export async function collectImageFiles(dir: string, recursive: boolean = true): Promise<string[]> {
-  const entries = await readdir(dir, { withFileTypes: true })
+  let entries
+  try {
+    entries = await readdir(dir, { withFileTypes: true })
+  } catch {
+    return [] // 目录不存在或无权限，跳过
+  }
   const files: string[] = []
 
   for (const entry of entries) {
     const fullPath = join(dir, entry.name)
+    // 跳过符号链接防止循环
+    if (entry.isSymbolicLink()) continue
     if (entry.isDirectory() && recursive) {
       files.push(...await collectImageFiles(fullPath, true))
     } else if (entry.isFile()) {
@@ -57,7 +64,7 @@ export async function scanSingleFile(filePath: string): Promise<PhotoInsertData 
 
     return {
       file_path: filePath,
-      file_name: filePath.split('/').pop()!,
+      file_name: basename(filePath),
       file_size: fileStat.size,
       format: getFormat(ext),
       created_at: fileStat.birthtime.toISOString(),

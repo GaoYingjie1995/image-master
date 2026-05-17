@@ -88,11 +88,97 @@ export function createPhotoRepo(db: Database.Database) {
       return db.prepare("SELECT * FROM photos WHERE created_at LIKE ? || '%'").all(today) as PhotoRow[]
     },
 
-    getAll(options?: { orderBy?: string; limit?: number; offset?: number }): PhotoRow[] {
-      const order = options?.orderBy || 'shot_at DESC, created_at DESC'
+    getAll(options?: { orderBy?: string; limit?: number; offset?: number; filter?: string; albumId?: number; search?: string }): PhotoRow[] {
+      const ALLOWED_FIELDS = new Set(['shot_at', 'created_at', 'file_name', 'file_size', 'rating', 'modified_at', 'camera_model', 'lens_model', 'iso'])
+      const ALLOWED_FILTERS = new Set(['today', 'rated', 'rejected'])
+      const orderStr = options?.orderBy || 'shot_at DESC, created_at DESC'
+      const [field, rawDir] = orderStr.split(/\s+/)
+      const direction = rawDir?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
+      const safeField = ALLOWED_FIELDS.has(field) ? field : 'shot_at'
       const limit = options?.limit || 100
       const offset = options?.offset || 0
-      return db.prepare(`SELECT * FROM photos ORDER BY ${order} LIMIT ? OFFSET ?`).all(limit, offset) as PhotoRow[]
+      const filter = options?.filter && ALLOWED_FILTERS.has(options.filter) ? options.filter : undefined
+      const search = options?.search?.trim()
+
+      const conditions: string[] = []
+      const params: unknown[] = []
+
+      if (search) {
+        conditions.push('file_name LIKE ?')
+        params.push(`%${search}%`)
+      }
+
+      if (filter === 'today') {
+        conditions.push('created_at LIKE ? || \'%\'')
+        params.push(new Date().toISOString().split('T')[0])
+      } else if (filter === 'rated') {
+        conditions.push('rating > 0')
+      } else if (filter === 'rejected') {
+        conditions.push('is_rejected = 1')
+      } else if (options?.albumId) {
+        conditions.push('id IN (SELECT photo_id FROM album_photos WHERE album_id = ?)')
+        params.push(options.albumId)
+      }
+
+      const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+      params.push(limit, offset)
+      return db.prepare(`SELECT * FROM photos ${where} ORDER BY ${safeField} ${direction} LIMIT ? OFFSET ?`).all(...params) as PhotoRow[]
+    },
+
+    countFiltered(filter?: string, search?: string, albumId?: number): number {
+      const ALLOWED_FILTERS = new Set(['today', 'rated', 'rejected'])
+      const safeFilter = filter && ALLOWED_FILTERS.has(filter) ? filter : undefined
+      const safeSearch = search?.trim()
+      const conditions: string[] = []
+      const params: unknown[] = []
+
+      if (safeSearch) {
+        conditions.push('file_name LIKE ?')
+        params.push(`%${safeSearch}%`)
+      }
+
+      if (safeFilter === 'today') {
+        conditions.push('created_at LIKE ? || \'%\'')
+        params.push(new Date().toISOString().split('T')[0])
+      } else if (safeFilter === 'rated') {
+        conditions.push('rating > 0')
+      } else if (safeFilter === 'rejected') {
+        conditions.push('is_rejected = 1')
+      } else if (albumId) {
+        conditions.push('id IN (SELECT photo_id FROM album_photos WHERE album_id = ?)')
+        params.push(albumId)
+      }
+
+      const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+      return (db.prepare(`SELECT COUNT(*) as count FROM photos ${where}`).get(...params) as { count: number }).count
+    },
+
+    getIdsByFilter(filter?: string, search?: string, albumId?: number): number[] {
+      const ALLOWED_FILTERS = new Set(['today', 'rated', 'rejected'])
+      const safeFilter = filter && ALLOWED_FILTERS.has(filter) ? filter : undefined
+      const safeSearch = search?.trim()
+      const conditions: string[] = []
+      const params: unknown[] = []
+
+      if (safeSearch) {
+        conditions.push('file_name LIKE ?')
+        params.push(`%${safeSearch}%`)
+      }
+
+      if (safeFilter === 'today') {
+        conditions.push('created_at LIKE ? || \'%\'')
+        params.push(new Date().toISOString().split('T')[0])
+      } else if (safeFilter === 'rated') {
+        conditions.push('rating > 0')
+      } else if (safeFilter === 'rejected') {
+        conditions.push('is_rejected = 1')
+      } else if (albumId) {
+        conditions.push('id IN (SELECT photo_id FROM album_photos WHERE album_id = ?)')
+        params.push(albumId)
+      }
+
+      const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+      return (db.prepare(`SELECT id FROM photos ${where}`).all(...params) as { id: number }[]).map(r => r.id)
     },
 
     count(): number {
@@ -127,6 +213,10 @@ export function createPhotoRepo(db: Database.Database) {
       batch(ids)
     },
 
+    updatePath(id: number, filePath: string, fileName: string): void {
+      db.prepare('UPDATE photos SET file_path = ?, file_name = ? WHERE id = ?').run(filePath, fileName, id)
+    },
+
     updateHash(id: number, hash: string): void {
       db.prepare('UPDATE photos SET file_hash = ? WHERE id = ?').run(hash, id)
     },
@@ -141,6 +231,22 @@ export function createPhotoRepo(db: Database.Database) {
       return groups.map(g =>
         (db.prepare('SELECT * FROM photos WHERE file_hash = ?').all(g.file_hash) as PhotoRow[])
       )
+    },
+
+    getWithGps(options?: { dateFrom?: string; dateTo?: string }): PhotoRow[] {
+      const conditions = ['gps_lat IS NOT NULL', 'gps_lng IS NOT NULL']
+      const params: unknown[] = []
+
+      if (options?.dateFrom) {
+        conditions.push('shot_at >= ?')
+        params.push(options.dateFrom)
+      }
+      if (options?.dateTo) {
+        conditions.push('shot_at <= ?')
+        params.push(options.dateTo + 'T23:59:59')
+      }
+
+      return db.prepare(`SELECT * FROM photos WHERE ${conditions.join(' AND ')}`).all(...params) as PhotoRow[]
     },
 
     getOrphanedRaws(): PhotoRow[] {

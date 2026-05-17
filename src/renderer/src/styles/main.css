@@ -1,10 +1,49 @@
+@import '@fontsource/dm-sans/300.css';
+@import '@fontsource/dm-sans/400.css';
+@import '@fontsource/dm-sans/500.css';
+@import '@fontsource/dm-sans/600.css';
+@import '@fontsource/playfair-display/400.css';
+@import '@fontsource/playfair-display/600.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  /* 深色主题（默认） */
+  :root {
+    --bg-deep: #08080a;
+    --bg-primary: #0e0e12;
+    --bg-secondary: #16161c;
+    --bg-tertiary: #1e1e26;
+    --bg-hover: #262630;
+    --text-primary: #e8e4df;
+    --text-secondary: #8a8690;
+    --text-muted: #5a5660;
+  }
+
+  /* 浅色主题 */
+  .theme-light {
+    --bg-deep: #f5f5f7;
+    --bg-primary: #ffffff;
+    --bg-secondary: #f0f0f2;
+    --bg-tertiary: #e8e8ea;
+    --bg-hover: #dcdce0;
+    --text-primary: #1d1d1f;
+    --text-secondary: #6e6e73;
+    --text-muted: #aeaeb2;
+  }
+
+  /* 浅色主题下的边框适配 */
+  .theme-light .border-white\/5 {
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+  .theme-light .border-white\/10 {
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #1e1e26; border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: #262630; }
+  ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--bg-hover); }
 }

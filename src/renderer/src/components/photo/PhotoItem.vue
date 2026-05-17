@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import RatingStars from '../common/RatingStars.vue'
+import { createLocalFileUrl } from '@shared/local-protocol'
 
 const props = defineProps<{
   photo: {
@@ -9,35 +10,60 @@ const props = defineProps<{
     file_size: number
     format: string
     rating: number
+    color_label: string | null
     camera_model?: string | null
     lens_model?: string | null
     is_rejected: number
   }
   selected: boolean
+  selectedIds?: Set<number>
 }>()
 
 const emit = defineEmits<{
   (e: 'click', event: MouseEvent): void
   (e: 'rate', rating: number): void
+  (e: 'contextmenu', event: MouseEvent): void
 }>()
+
+function handleDragStart(e: DragEvent) {
+  // 如果当前照片在选中集合中，拖拽所有选中照片；否则只拖拽当前照片
+  const ids = (props.selectedIds && props.selectedIds.size > 0 && props.selectedIds.has(props.photo.id))
+    ? Array.from(props.selectedIds)
+    : [props.photo.id]
+  e.dataTransfer?.setData('application/photo-ids', JSON.stringify(ids))
+  e.dataTransfer!.effectAllowed = 'copy'
+}
+
+const COLOR_MAP: Record<string, string> = {
+  red: '#ef4444',
+  yellow: '#eab308',
+  green: '#22c55e',
+  blue: '#3b82f6',
+  purple: '#a855f7'
+}
 
 const thumbUrl = ref<string>('')
 
-onMounted(async () => {
+watch(() => props.photo.id, async (id) => {
+  thumbUrl.value = ''
   if (window.electronAPI) {
-    const path = await window.electronAPI.photos.getThumbnail(props.photo.id)
-    if (path) thumbUrl.value = `file://${path}`
+    const path = await window.electronAPI.photos.getThumbnail(id)
+    if (path) thumbUrl.value = createLocalFileUrl('local-thumbnail', path)
   }
-})
+}, { immediate: true })
 
 const isRaw = props.photo.format === 'raw'
 </script>
 
 <template>
   <div class="aspect-square bg-bg-tertiary rounded-lg overflow-hidden cursor-pointer relative group transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/40"
-       @click="emit('click', $event)">
+       :style="photo.color_label && COLOR_MAP[photo.color_label] ? { boxShadow: `inset 0 0 0 2px ${COLOR_MAP[photo.color_label]}` } : undefined"
+       draggable="true"
+       @dragstart="handleDragStart"
+       @click="emit('click', $event)"
+       @contextmenu.prevent="emit('contextmenu', $event)">
     <div class="w-full h-full flex items-center justify-center relative overflow-hidden">
-      <img v-if="thumbUrl" :src="thumbUrl" class="w-full h-full object-cover" loading="lazy" />
+      <img v-if="thumbUrl" :src="thumbUrl" class="w-full h-full object-cover" loading="lazy" :alt="photo.file_name" />
       <div v-else class="flex flex-col items-center justify-center gap-1.5">
         <span class="text-2xl opacity-20">◈</span>
         <span class="text-[10px] text-text-muted tracking-wider">{{ photo.file_name.split('.')[0] }}</span>

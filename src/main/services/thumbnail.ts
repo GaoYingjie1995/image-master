@@ -1,6 +1,6 @@
 import sharp from 'sharp'
 import { join } from 'path'
-import { mkdir, access } from 'fs/promises'
+import { mkdir, access, readdir, stat, unlink } from 'fs/promises'
 
 const THUMB_SIZE = 300
 const THUMB_QUALITY = 80
@@ -39,5 +39,43 @@ export async function thumbnailExists(photoId: number): Promise<boolean> {
     return true
   } catch {
     return false
+  }
+}
+
+export async function getCacheSize(): Promise<{ fileCount: number; totalSize: number }> {
+  const dir = getThumbnailDir()
+  try {
+    const files = await readdir(dir)
+    let totalSize = 0
+    for (const file of files) {
+      if (file.endsWith('.webp')) {
+        try {
+          const s = await stat(join(dir, file))
+          totalSize += s.size
+        } catch { /* ignore */ }
+      }
+    }
+    return { fileCount: files.filter(f => f.endsWith('.webp')).length, totalSize }
+  } catch {
+    return { fileCount: 0, totalSize: 0 }
+  }
+}
+
+export async function clearCache(): Promise<number> {
+  const dir = getThumbnailDir()
+  try {
+    const files = await readdir(dir)
+    let count = 0
+    for (const file of files) {
+      if (file.endsWith('.webp')) {
+        try {
+          await unlink(join(dir, file))
+          count++
+        } catch { /* ignore */ }
+      }
+    }
+    return count
+  } catch {
+    return 0
   }
 }

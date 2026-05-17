@@ -1,0 +1,60 @@
+<script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
+
+const props = defineProps<{
+  visible: boolean
+  title: string
+  message: string
+  confirmText?: string
+  cancelText?: string
+  danger?: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'confirm'): void
+  (e: 'cancel'): void
+}>()
+
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && props.visible) {
+    emit('cancel')
+  }
+}
+
+onMounted(() => { window.addEventListener('keydown', handleKeydown) })
+onUnmounted(() => { window.removeEventListener('keydown', handleKeydown) })
+</script>
+
+<template>
+  <Teleport to="body">
+    <Transition name="fade">
+      <div v-if="visible" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+           @click.self="$emit('cancel')">
+        <div class="bg-bg-secondary border border-white/10 rounded-xl p-5 w-80 shadow-2xl">
+          <h3 class="text-sm font-medium text-text-primary mb-2">{{ title }}</h3>
+          <p class="text-xs text-text-secondary mb-5">{{ message }}</p>
+          <div class="flex justify-end gap-2">
+            <button @click="$emit('cancel')"
+                    class="px-4 py-1.5 text-xs rounded-lg bg-bg-tertiary text-text-secondary hover:bg-bg-hover border border-white/5 transition-colors">
+              {{ cancelText || '取消' }}
+            </button>
+            <button @click="$emit('confirm')"
+                    class="px-4 py-1.5 text-xs rounded-lg transition-colors"
+                    :class="danger ? 'bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/20' : 'bg-accent/15 text-accent hover:bg-accent/25 border border-accent/20'">
+              {{ confirmText || '确认' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+</template>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+</style>
