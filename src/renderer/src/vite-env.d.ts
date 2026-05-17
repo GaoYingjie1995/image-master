@@ -26,6 +26,7 @@ interface ElectronAPI {
     batchDelete: (ids: number[]) => Promise<{ success: number; failed: number; errors: string[] }>
     importFolder: () => Promise<unknown>
     getThumbnail: (photoId: number) => Promise<string | null>
+    getPreview: (photoId: number) => Promise<{ scheme: 'local-photo' | 'local-thumbnail'; path: string } | null>
     onScanProgress: (callback: (data: { current: number; total: number }) => void) => () => void
     batchRename: (ids: number[], template: string, startSeq?: number) => Promise<unknown[]>
     batchExport: (ids: number[], options: unknown) => Promise<void>

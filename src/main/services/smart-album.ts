@@ -32,6 +32,7 @@ const FIELD_TYPES: Record<string, 'number' | 'string' | 'boolean'> = {
 const ALLOWED_OPS = new Set([
   'equals', 'not_equals', 'gte', 'lte', 'contains', 'in', 'this_month', 'this_year'
 ])
+const RAW_FORMATS = new Set(['raw', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'raf', 'dng', 'pef', 'srw', 'rw2'])
 
 export function validateRules(rulesStr: string): { valid: boolean; error?: string } {
   let rules: SmartAlbumRules
@@ -143,5 +144,29 @@ export function getSmartAlbumPhotos(db: Database.Database, albumId: number): Rec
   }
 
   const photos = db.prepare('SELECT * FROM photos').all() as Record<string, unknown>[]
-  return photos.filter(p => evaluateRules(rules, p))
+  const renderableStemInDir = new Set<string>()
+
+  for (const photo of photos) {
+    const format = String(photo.format || '').toLowerCase()
+    if (RAW_FORMATS.has(format)) continue
+    const filePath = String(photo.file_path || '')
+    const fileName = String(photo.file_name || '')
+    const dir = filePath.slice(0, Math.max(0, filePath.length - fileName.length)).toLowerCase()
+    const stem = fileName.replace(/\.[^.]+$/, '').toLowerCase()
+    renderableStemInDir.add(`${dir}::${stem}`)
+  }
+
+  return photos.filter(photo => {
+    const format = String(photo.format || '').toLowerCase()
+    if (RAW_FORMATS.has(format)) {
+      const filePath = String(photo.file_path || '')
+      const fileName = String(photo.file_name || '')
+      const dir = filePath.slice(0, Math.max(0, filePath.length - fileName.length)).toLowerCase()
+      const stem = fileName.replace(/\.[^.]+$/, '').toLowerCase()
+      if (renderableStemInDir.has(`${dir}::${stem}`)) {
+        return false
+      }
+    }
+    return evaluateRules(rules, photo)
+  })
 }

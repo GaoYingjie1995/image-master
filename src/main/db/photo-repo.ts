@@ -50,6 +50,26 @@ export interface PhotoRow {
 }
 
 export function createPhotoRepo(db: Database.Database) {
+  const RAW_FORMATS = ['raw', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'raf', 'dng', 'pef', 'srw', 'rw2'] as const
+  const RAW_FORMATS_SQL = RAW_FORMATS.map(format => `'${format}'`).join(', ')
+  const stripKnownExtSql = (column: string) => (
+    RAW_FORMATS.concat(['jpg', 'jpeg', 'png', 'webp', 'tiff', 'tif', 'bmp', 'gif'])
+      .reduce((sql, ext) => `replace(${sql}, '.${ext}', '')`, `lower(${column})`)
+  )
+
+  const HIDE_RAW_WITH_RENDERABLE_PAIR_CONDITION = `
+    NOT (
+      lower(p.format) IN (${RAW_FORMATS_SQL})
+      AND EXISTS (
+        SELECT 1 FROM photos j
+        WHERE lower(j.format) NOT IN (${RAW_FORMATS_SQL})
+          AND lower(substr(j.file_path, 1, length(j.file_path) - length(j.file_name)))
+              = lower(substr(p.file_path, 1, length(p.file_path) - length(p.file_name)))
+          AND ${stripKnownExtSql('j.file_name')} = ${stripKnownExtSql('p.file_name')}
+      )
+    )
+  `
+
   const insertStmt = db.prepare(`
     INSERT INTO photos (file_path, file_name, file_size, file_hash, format, raw_pair_id, width, height, rating, color_label, is_rejected, created_at, modified_at, shot_at, camera_model, lens_model, iso, aperture, shutter_speed, gps_lat, gps_lng)
     VALUES (@file_path, @file_name, @file_size, @file_hash, @format, @raw_pair_id, @width, @height, @rating, @color_label, @is_rejected, @created_at, @modified_at, @shot_at, @camera_model, @lens_model, @iso, @aperture, @shutter_speed, @gps_lat, @gps_lng)
@@ -120,9 +140,10 @@ export function createPhotoRepo(db: Database.Database) {
         params.push(options.albumId)
       }
 
+      conditions.push(HIDE_RAW_WITH_RENDERABLE_PAIR_CONDITION)
       const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
       params.push(limit, offset)
-      return db.prepare(`SELECT * FROM photos ${where} ORDER BY ${safeField} ${direction} LIMIT ? OFFSET ?`).all(...params) as PhotoRow[]
+      return db.prepare(`SELECT p.* FROM photos p ${where} ORDER BY ${safeField} ${direction} LIMIT ? OFFSET ?`).all(...params) as PhotoRow[]
     },
 
     countFiltered(filter?: string, search?: string, albumId?: number): number {
@@ -149,8 +170,9 @@ export function createPhotoRepo(db: Database.Database) {
         params.push(albumId)
       }
 
+      conditions.push(HIDE_RAW_WITH_RENDERABLE_PAIR_CONDITION)
       const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
-      return (db.prepare(`SELECT COUNT(*) as count FROM photos ${where}`).get(...params) as { count: number }).count
+      return (db.prepare(`SELECT COUNT(*) as count FROM photos p ${where}`).get(...params) as { count: number }).count
     },
 
     getIdsByFilter(filter?: string, search?: string, albumId?: number): number[] {
@@ -177,8 +199,9 @@ export function createPhotoRepo(db: Database.Database) {
         params.push(albumId)
       }
 
+      conditions.push(HIDE_RAW_WITH_RENDERABLE_PAIR_CONDITION)
       const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
-      return (db.prepare(`SELECT id FROM photos ${where}`).all(...params) as { id: number }[]).map(r => r.id)
+      return (db.prepare(`SELECT p.id FROM photos p ${where}`).all(...params) as { id: number }[]).map(r => r.id)
     },
 
     count(): number {
@@ -234,19 +257,19 @@ export function createPhotoRepo(db: Database.Database) {
     },
 
     getWithGps(options?: { dateFrom?: string; dateTo?: string }): PhotoRow[] {
-      const conditions = ['gps_lat IS NOT NULL', 'gps_lng IS NOT NULL']
+      const conditions = ['p.gps_lat IS NOT NULL', 'p.gps_lng IS NOT NULL', HIDE_RAW_WITH_RENDERABLE_PAIR_CONDITION]
       const params: unknown[] = []
 
       if (options?.dateFrom) {
-        conditions.push('shot_at >= ?')
+        conditions.push('p.shot_at >= ?')
         params.push(options.dateFrom)
       }
       if (options?.dateTo) {
-        conditions.push('shot_at <= ?')
+        conditions.push('p.shot_at <= ?')
         params.push(options.dateTo + 'T23:59:59')
       }
 
-      return db.prepare(`SELECT * FROM photos WHERE ${conditions.join(' AND ')}`).all(...params) as PhotoRow[]
+      return db.prepare(`SELECT p.* FROM photos p WHERE ${conditions.join(' AND ')}`).all(...params) as PhotoRow[]
     },
 
     getOrphanedRaws(): PhotoRow[] {

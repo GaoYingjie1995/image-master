@@ -23,12 +23,8 @@ export interface Photo {
 
 const SORT_MAP: Record<string, string> = {
   date: 'shot_at DESC',
-  name: 'file_name ASC',
   size: 'file_size DESC',
-  rating: 'rating DESC',
-  camera: 'camera_model ASC',
-  lens: 'lens_model ASC',
-  iso: 'iso DESC'
+  rating: 'rating DESC'
 }
 
 export const usePhotosStore = defineStore('photos', () => {

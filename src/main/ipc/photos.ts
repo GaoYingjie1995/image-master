@@ -2,7 +2,7 @@ import { ipcMain, dialog, BrowserWindow, shell } from 'electron'
 import Database from 'better-sqlite3'
 import { createPhotoRepo } from '../db/photo-repo'
 import { scanFolder } from '../services/scanner'
-import { getThumbnailPath, getThumbnailPathForPhoto, generateThumbnail, getCacheSize, clearCache } from '../services/thumbnail'
+import { getThumbnailPath, getThumbnailPathForPhoto, getPreviewPathForPhoto, generateThumbnail, generatePreview, getCacheSize, clearCache } from '../services/thumbnail'
 import { batchRename, batchExport } from '../services/batch-operations'
 import { computeHistogram } from '../services/histogram'
 import { deletePhotos } from '../services/delete-service'
@@ -108,6 +108,25 @@ export function registerPhotoIpc(db: Database.Database) {
     }
 
     return thumbPath
+  })
+
+  ipcMain.handle('photos:getPreview', async (_event, photoId: number) => {
+    const photo = repo.getById(photoId)
+    if (!photo) return null
+
+    if (photo.format !== 'raw') {
+      return { scheme: 'local-photo', path: photo.file_path }
+    }
+
+    const previewPath = await getPreviewPathForPhoto(photoId, photo.file_path)
+    try {
+      const { access } = await import('fs/promises')
+      await access(previewPath)
+    } catch {
+      await generatePreview(photo.file_path, previewPath)
+    }
+
+    return { scheme: 'local-thumbnail', path: previewPath }
   })
 
   ipcMain.handle('photos:batchRename', async (_event, ids: number[], template: string, startSeq: number) => {

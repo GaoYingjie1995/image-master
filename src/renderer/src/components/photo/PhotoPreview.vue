@@ -30,6 +30,7 @@ const showExif = ref(false)
 const zoom = ref(1) // 1 = fit, >1 = zoomed
 const panX = ref(0)
 const panY = ref(0)
+let previewRequestToken = 0
 let isPanning = false
 let panStartX = 0
 let panStartY = 0
@@ -42,10 +43,26 @@ const COLOR_LABELS = [
   { key: 'purple', label: '紫', color: '#a855f7' }
 ]
 
-watch(() => props.photo, (photo) => {
-  if (photo) {
+watch(() => props.photo, async (photo) => {
+  const requestToken = ++previewRequestToken
+  imageUrl.value = ''
+  if (!photo) return
+
+  resetZoom()
+
+  if (photo.format !== 'raw') {
     imageUrl.value = createLocalFileUrl('local-photo', photo.file_path)
-    resetZoom()
+    return
+  }
+
+  try {
+    const preview = await window.electronAPI?.photos.getPreview(photo.id)
+    if (requestToken !== previewRequestToken || !preview) return
+    imageUrl.value = createLocalFileUrl(preview.scheme, preview.path)
+  } catch {
+    if (requestToken !== previewRequestToken) return
+    // 兜底：即使 RAW 预览生成失败，也尝试直链原图
+    imageUrl.value = createLocalFileUrl('local-photo', photo.file_path)
   }
 }, { immediate: true })
 

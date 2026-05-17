@@ -63,7 +63,7 @@ export async function deletePhotos(db: Database.Database, ids: number[]): Promis
       const files = await readdir(thumbDir)
       const prefix = `${id}-`
       for (const file of files) {
-        if (file.startsWith(prefix) && file.endsWith('.webp')) {
+        if (file.startsWith(prefix) && (file.endsWith('.webp') || file.endsWith('.jpg'))) {
           try {
             await unlink(join(thumbDir, file))
           } catch { /* ignore single file unlink errors */ }

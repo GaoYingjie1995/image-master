@@ -74,4 +74,42 @@ describe('PhotoRepo', () => {
     expect(repo.getById(id1)!.rating).toBe(3)
     expect(repo.getById(id2)!.rating).toBe(3)
   })
+
+  it('同目录同名存在可预览格式时应隐藏 RAW（兼容历史 format=raf）', () => {
+    repo.insert({
+      file_path: '/photos/DSCF0001.JPG',
+      file_name: 'DSCF0001.JPG',
+      file_size: 2048,
+      format: 'jpg',
+      created_at: '2024-01-15T00:00:00Z',
+      modified_at: '2024-01-15T00:00:00Z'
+    })
+    repo.insert({
+      file_path: '/photos/DSCF0001.RAF',
+      file_name: 'DSCF0001.RAF',
+      file_size: 4096,
+      format: 'raf',
+      created_at: '2024-01-15T00:00:00Z',
+      modified_at: '2024-01-15T00:00:00Z'
+    })
+
+    const list = repo.getAll({ limit: 20, offset: 0 })
+    expect(list).toHaveLength(1)
+    expect(list[0].format).toBe('jpg')
+  })
+
+  it('没有同名可预览文件时应保留 RAW', () => {
+    repo.insert({
+      file_path: '/photos/DSCF0002.RAF',
+      file_name: 'DSCF0002.RAF',
+      file_size: 4096,
+      format: 'raf',
+      created_at: '2024-01-15T00:00:00Z',
+      modified_at: '2024-01-15T00:00:00Z'
+    })
+
+    const list = repo.getAll({ limit: 20, offset: 0 })
+    expect(list).toHaveLength(1)
+    expect(list[0].format).toBe('raf')
+  })
 })

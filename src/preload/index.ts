@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     batchDelete: (ids: number[]) => ipcRenderer.invoke('photos:batchDelete', ids),
     importFolder: () => ipcRenderer.invoke('photos:importFolder'),
     getThumbnail: (photoId: number) => ipcRenderer.invoke('photos:getThumbnail', photoId),
+    getPreview: (photoId: number) => ipcRenderer.invoke('photos:getPreview', photoId),
     onScanProgress: (callback: (data: { current: number; total: number }) => void) => {
       const handler = (_e: Electron.IpcRendererEvent, data: { current: number; total: number }) => callback(data)
       ipcRenderer.on('photos:scanProgress', handler)

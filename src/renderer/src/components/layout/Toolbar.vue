@@ -33,7 +33,7 @@ onUnmounted(() => {
 <template>
   <div class="h-11 bg-bg-secondary border-b border-white/5 flex items-center px-4 gap-3">
     <div class="flex gap-0.5">
-      <button v-for="opt in [{ value: 'date', labelKey: 'toolbar.date' }, { value: 'name', labelKey: 'toolbar.name' }, { value: 'size', labelKey: 'toolbar.size' }, { value: 'rating', labelKey: 'toolbar.rating' }, { value: 'camera', labelKey: 'toolbar.camera' }, { value: 'lens', labelKey: 'toolbar.lens' }, { value: 'iso', labelKey: 'toolbar.iso' }]" :key="opt.value"
+      <button v-for="opt in [{ value: 'date', labelKey: 'toolbar.date' }, { value: 'size', labelKey: 'toolbar.size' }, { value: 'rating', labelKey: 'toolbar.rating' }]" :key="opt.value"
               @click="$emit('sort', opt.value)"
               class="px-2.5 py-1 text-xs rounded-md transition-colors"
               :class="sortBy === opt.value ? 'bg-accent-dim text-accent' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'">

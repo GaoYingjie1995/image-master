@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { validateRules } from '../../../src/main/services/smart-album'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import Database from 'better-sqlite3'
+import { validateRules, getSmartAlbumPhotos } from '../../../src/main/services/smart-album'
 
 describe('validateRules', () => {
   it('有效规则应通过校验', () => {
@@ -104,5 +105,48 @@ describe('validateRules', () => {
       ]
     })
     expect(validateRules(rules)).toEqual({ valid: true })
+  })
+})
+
+describe('getSmartAlbumPhotos', () => {
+  let db: Database.Database
+
+  beforeEach(() => {
+    db = new Database(':memory:')
+    db.exec(`
+      CREATE TABLE smart_albums (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        rules TEXT NOT NULL
+      );
+      CREATE TABLE photos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        file_path TEXT NOT NULL,
+        file_name TEXT NOT NULL,
+        format TEXT NOT NULL,
+        rating INTEGER DEFAULT 0,
+        color_label TEXT,
+        is_rejected INTEGER DEFAULT 0,
+        shot_at TEXT,
+        camera_model TEXT,
+        lens_model TEXT,
+        iso INTEGER,
+        aperture REAL
+      );
+    `)
+    db.prepare('INSERT INTO smart_albums (name, rules) VALUES (?, ?)').run('all', JSON.stringify({ operator: 'AND', conditions: [] }))
+  })
+
+  afterEach(() => {
+    db.close()
+  })
+
+  it('有同目录同名可预览文件时应隐藏 RAW（兼容 format=raf）', () => {
+    db.prepare('INSERT INTO photos (file_path, file_name, format) VALUES (?, ?, ?)').run('/photos/DSCF1000.jpg', 'DSCF1000.jpg', 'jpg')
+    db.prepare('INSERT INTO photos (file_path, file_name, format) VALUES (?, ?, ?)').run('/photos/DSCF1000.raf', 'DSCF1000.raf', 'raf')
+
+    const photos = getSmartAlbumPhotos(db, 1)
+    expect(photos).toHaveLength(1)
+    expect(photos[0].format).toBe('jpg')
   })
 })
