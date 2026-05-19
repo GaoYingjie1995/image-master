@@ -108,7 +108,16 @@ export default {
     confirmDeleteOthersMessage: '{count} duplicate files will be moved to trash. Are you sure?',
     deleted: '{count} duplicate files deleted',
     kept: '✓ Kept',
-    deleteOthers: 'Delete Others ({count})'
+    deleteOthers: 'Delete Others ({count})',
+    keepFolder: 'Keep Folder',
+    selectKeepFolder: 'Select folder to keep',
+    batchSelect: 'Batch Select',
+    batchDelete: 'Delete Selected ({count})',
+    batchConfirmTitle: 'Batch Delete Duplicates',
+    batchConfirmMessage: '{count} duplicate files will be moved to trash (files in the kept folder excluded). Are you sure?',
+    batchResult: 'Batch delete done: {success} succeeded, {failed} failed',
+    batchSkipped: '{count} groups skipped (no file in kept folder)',
+    deleting: 'Deleting...'
   },
   cleanup: {
     title: 'RAW Cleanup',

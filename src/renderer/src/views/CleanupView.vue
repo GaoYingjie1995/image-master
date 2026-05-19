@@ -9,7 +9,7 @@ const toast = useToastStore()
 const { t } = useI18n()
 
 const folderPath = ref('')
-const orphanedRaws = ref<{ id: number; file_path: string; file_name: string }[]>([])
+const orphanedRaws = ref<{ file_path: string; file_name: string }[]>([])
 const scanning = ref(false)
 
 const confirmVisible = ref(false)

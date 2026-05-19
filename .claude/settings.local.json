@@ -33,7 +33,9 @@
       "Bash(pnpm build *)",
       "Bash(pnpm test *)",
       "Bash(pnpm typecheck *)",
-      "Skill(superpowers:systematic-debugging)"
+      "Skill(superpowers:systematic-debugging)",
+      "Bash(pnpm install *)",
+      "Bash(ELECTRON_MIRROR=\"https://npmmirror.com/mirrors/electron/\" node *)"
     ]
   }
 }

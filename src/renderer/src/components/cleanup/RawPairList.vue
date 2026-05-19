@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineProps<{
-  pairs: { id: number; file_path: string; file_name: string }[]
+  pairs: { file_path: string; file_name: string }[]
 }>()
 
 defineEmits<{
@@ -19,7 +19,7 @@ defineEmits<{
       </button>
     </div>
     <div class="space-y-2">
-      <div v-for="raw in pairs" :key="raw.id"
+      <div v-for="raw in pairs" :key="raw.file_path"
            class="flex items-center gap-3 p-3 bg-bg-secondary rounded-lg border border-white/5">
         <span class="text-accent text-sm">⊘</span>
         <div class="flex-1 min-w-0">

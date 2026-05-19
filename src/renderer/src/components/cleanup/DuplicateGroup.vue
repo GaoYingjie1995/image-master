@@ -5,17 +5,24 @@ import { createLocalFileUrl } from '@shared/local-protocol'
 
 const { t } = useI18n()
 
-defineProps<{
+const props = defineProps<{
   group: { hash: string; photos: { id: number; file_path: string; file_name: string; file_size: number }[] }
+  preselectedKeepId?: number | null
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'keep', photoId: number): void
   (e: 'delete', filePath: string): void
   (e: 'deleteOthers', filePaths: string[]): void
+  (e: 'batchDelete', filePaths: string[]): void
 }>()
 
 const keptId = ref<number | null>(null)
+
+watch(() => props.preselectedKeepId, (val) => {
+  if (val !== undefined) keptId.value = val
+})
 const thumbUrls = ref<Map<number, string>>(new Map())
 
 function loadThumbnail(photoId: number) {
@@ -50,8 +57,8 @@ function formatSize(bytes: number): string {
       <span class="text-[10px] text-text-muted">{{ $t('duplicates.files', { count: group.photos.length }) }}</span>
       <div class="flex-1"></div>
       <button v-if="keptId !== null"
-              @click="handleDeleteOthers(group)"
-              class="px-3 py-1 text-xs rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">
+              @click="handleDeleteOthers(group)" :disabled="disabled"
+              class="px-3 py-1 text-xs rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50">
         {{ $t('duplicates.deleteOthers', { count: group.photos.length - 1 }) }}
       </button>
     </div>
@@ -70,12 +77,12 @@ function formatSize(bytes: number): string {
         </div>
         <div class="flex gap-2 items-center">
           <span v-if="keptId === photo.id" class="text-xs text-green-400 font-medium">{{ $t('duplicates.kept') }}</span>
-          <button v-else @click="handleKeep(photo.id)"
-                  class="px-3 py-1 text-xs rounded-md bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors">
+          <button v-else @click="handleKeep(photo.id)" :disabled="disabled"
+                  class="px-3 py-1 text-xs rounded-md bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors disabled:opacity-50">
             {{ $t('duplicates.keep') }}
           </button>
-          <button @click="$emit('delete', photo.file_path)"
-                  class="px-3 py-1 text-xs rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">
+          <button @click="$emit('delete', photo.file_path)" :disabled="disabled"
+                  class="px-3 py-1 text-xs rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50">
             {{ $t('duplicates.delete') }}
           </button>
         </div>

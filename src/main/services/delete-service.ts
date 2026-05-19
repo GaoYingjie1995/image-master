@@ -13,6 +13,7 @@ export interface DeleteResult {
   success: number
   failed: number
   errors: string[]
+  deletedPaths: string[]
 }
 
 /**
@@ -26,12 +27,14 @@ export async function deletePhotos(db: Database.Database, ids: number[]): Promis
 
   const photos = ids.map(id => repo.getById(id)).filter((p): p is NonNullable<typeof p> => p !== undefined)
   const succeededIds: number[] = []
+  const deletedPaths: string[] = []
   const errors: string[] = []
 
   for (const photo of photos) {
     try {
       await shell.trashItem(photo.file_path)
       succeededIds.push(photo.id)
+      deletedPaths.push(photo.file_path)
 
       // 关联删除 RAW 文件
       if (deleteLinkedRaw && photo.format !== 'raw') {
@@ -44,6 +47,7 @@ export async function deletePhotos(db: Database.Database, ids: number[]): Promis
             try {
               await shell.trashItem(rawPhoto.file_path)
               succeededIds.push(rawPhoto.id)
+              deletedPaths.push(rawPhoto.file_path)
             } catch { /* RAW 删除失败不阻塞主流程 */ }
           }
         }
@@ -77,7 +81,7 @@ export async function deletePhotos(db: Database.Database, ids: number[]): Promis
     repo.batchDelete(succeededIds)
   }
 
-  return { success: succeededIds.length, failed: errors.length, errors }
+  return { success: succeededIds.length, failed: errors.length, errors, deletedPaths }
 }
 
 /**

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DuplicateGroup from '../components/cleanup/DuplicateGroup.vue'
 import ConfirmDialog from '../components/common/ConfirmDialog.vue'
@@ -17,6 +17,38 @@ const confirmVisible = ref(false)
 const pendingDeletePath = ref('')
 const confirmDeleteOthersVisible = ref(false)
 const pendingDeleteOthersPaths = ref<string[]>([])
+const deleting = ref(false)
+
+// 批量删除
+const keepFolder = ref('')
+const batchSelections = ref<Record<string, number>>({})
+const confirmBatchVisible = ref(false)
+const pendingBatchPaths = ref<string[]>([])
+const batchSkippedCount = ref(0)
+
+const folders = computed(() => {
+  const set = new Set<string>()
+  for (const g of groups.value) {
+    for (const p of g.photos) {
+      const sep = p.file_path.lastIndexOf('/') !== -1 ? '/' : '\\'
+      set.add(p.file_path.substring(0, p.file_path.lastIndexOf(sep)))
+    }
+  }
+  return Array.from(set).sort()
+})
+
+const showBatchBar = computed(() => groups.value.length > 0 && folders.value.length > 1)
+
+const batchDeleteCount = computed(() => {
+  let count = 0
+  for (const g of groups.value) {
+    const keepId = batchSelections.value[g.hash]
+    if (keepId !== undefined) {
+      count += g.photos.filter(p => p.id !== keepId).length
+    }
+  }
+  return count
+})
 
 let progressCleanup: (() => void) | null = null
 
@@ -70,16 +102,22 @@ async function confirmDelete() {
   confirmVisible.value = false
   pendingDeletePath.value = ''
   if (window.electronAPI && filePath) {
-    const result = await window.electronAPI.cleanup.deleteFiles([filePath])
-    if (result.success > 0) {
-      toast.success(t('duplicates.recycleSuccess'))
-      // 从列表中移除已删除的照片
-      groups.value = groups.value.map(g => ({
-        ...g,
-        photos: g.photos.filter(p => p.file_path !== filePath)
-      })).filter(g => g.photos.length > 1)
-    } else {
+    deleting.value = true
+    try {
+      const result = await window.electronAPI.cleanup.deleteFiles([filePath])
+      if (result.success > 0) {
+        toast.success(t('duplicates.recycleSuccess'))
+        groups.value = groups.value.map(g => ({
+          ...g,
+          photos: g.photos.filter(p => p.file_path !== filePath)
+        })).filter(g => g.photos.length > 1)
+      } else {
+        toast.error(t('duplicates.deleteFailed'))
+      }
+    } catch {
       toast.error(t('duplicates.deleteFailed'))
+    } finally {
+      deleting.value = false
     }
   }
 }
@@ -95,18 +133,93 @@ async function confirmDeleteOthers() {
   confirmDeleteOthersVisible.value = false
   pendingDeleteOthersPaths.value = []
   if (!window.electronAPI || filePaths.length === 0) return
-  const result = await window.electronAPI.cleanup.deleteFiles(filePaths)
-  if (result.success > 0) {
-    toast.success(t('duplicates.deleted', { count: result.success }))
-    // 移除已删除的照片，清空只剩一个的组
-    const deletedSet = new Set(filePaths)
-    groups.value = groups.value.map(g => ({
-      ...g,
-      photos: g.photos.filter(p => !deletedSet.has(p.file_path))
-    })).filter(g => g.photos.length > 1)
+  deleting.value = true
+  try {
+    const result = await window.electronAPI.cleanup.deleteFiles(filePaths)
+    if (result.success > 0) {
+      toast.success(t('duplicates.deleted', { count: result.success }))
+      const deletedSet = new Set(result.deletedPaths)
+      groups.value = groups.value.map(g => ({
+        ...g,
+        photos: g.photos.filter(p => !deletedSet.has(p.file_path))
+      })).filter(g => g.photos.length > 1)
+    }
+    if (result.failed > 0) {
+      toast.error(t('duplicates.deleteFailCount', { count: result.failed }))
+    }
+    if (result.success === 0 && result.failed === 0) {
+      toast.error(t('duplicates.deleteFailed'))
+    }
+  } catch {
+    toast.error(t('duplicates.deleteFailed'))
+  } finally {
+    deleting.value = false
   }
-  if (result.failed > 0) {
-    toast.error(t('duplicates.deleteFailCount', { count: result.failed }))
+}
+
+function applyBatchSelection() {
+  if (!keepFolder.value) return
+  const selections: Record<string, number> = {}
+  let skipped = 0
+  for (const g of groups.value) {
+    const inFolder = g.photos.filter(p => {
+      const sep = p.file_path.lastIndexOf('/') !== -1 ? '/' : '\\'
+      const dir = p.file_path.substring(0, p.file_path.lastIndexOf(sep))
+      return dir === keepFolder.value
+    })
+    if (inFolder.length > 0) {
+      selections[g.hash] = inFolder[0].id
+    } else {
+      skipped++
+    }
+  }
+  batchSelections.value = selections
+  batchSkippedCount.value = skipped
+  if (skipped > 0) {
+    toast.info(t('duplicates.batchSkipped', { count: skipped }))
+  }
+}
+
+function requestBatchDelete() {
+  const paths: string[] = []
+  for (const g of groups.value) {
+    const keepId = batchSelections.value[g.hash]
+    if (keepId !== undefined) {
+      for (const p of g.photos) {
+        if (p.id !== keepId) paths.push(p.file_path)
+      }
+    }
+  }
+  if (paths.length === 0) return
+  pendingBatchPaths.value = paths
+  confirmBatchVisible.value = true
+}
+
+async function confirmBatchDelete() {
+  const paths = [...pendingBatchPaths.value]
+  confirmBatchVisible.value = false
+  pendingBatchPaths.value = []
+  if (!window.electronAPI || paths.length === 0) return
+  deleting.value = true
+  try {
+    const result = await window.electronAPI.cleanup.deleteFiles(paths)
+    if (result.success > 0) {
+      const deletedSet = new Set(result.deletedPaths)
+      groups.value = groups.value.map(g => ({
+        ...g,
+        photos: g.photos.filter(p => !deletedSet.has(p.file_path))
+      })).filter(g => g.photos.length > 1)
+      batchSelections.value = {}
+      toast.success(t('duplicates.batchResult', { success: result.success, failed: result.failed }))
+    } else if (result.failed > 0) {
+      toast.error(t('duplicates.deleteFailCount', { count: result.failed }))
+    } else {
+      toast.error(t('duplicates.deleteFailed'))
+    }
+  } catch {
+    toast.error(t('duplicates.deleteFailed'))
+  } finally {
+    deleting.value = false
   }
 }
 </script>
@@ -133,11 +246,45 @@ async function confirmDeleteOthers() {
       </div>
     </div>
 
-    <div class="space-y-4">
-      <DuplicateGroup v-for="group in groups" :key="group.hash"
-                      :group="group"
-                      @delete="requestDelete"
-                      @delete-others="handleDeleteOthers" />
+    <div v-if="showBatchBar" class="mb-4 p-4 bg-bg-secondary rounded-xl border border-white/5">
+      <div class="flex items-center gap-3 flex-wrap">
+        <span class="text-xs text-text-secondary">{{ $t('duplicates.keepFolder') }}:</span>
+        <select v-model="keepFolder"
+                class="px-3 py-1.5 text-sm rounded-lg bg-bg-tertiary border border-white/5 text-text-primary min-w-0 flex-1 max-w-md">
+          <option value="">{{ $t('duplicates.selectKeepFolder') }}</option>
+          <option v-for="f in folders" :key="f" :value="f">{{ f }}</option>
+        </select>
+        <button @click="applyBatchSelection" :disabled="!keepFolder"
+                class="px-3 py-1.5 text-sm rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors disabled:opacity-50">
+          {{ $t('duplicates.batchSelect') }}
+        </button>
+        <button v-if="batchDeleteCount > 0" @click="requestBatchDelete" :disabled="deleting"
+                class="px-3 py-1.5 text-sm rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50">
+          {{ $t('duplicates.batchDelete', { count: batchDeleteCount }) }}
+        </button>
+      </div>
+    </div>
+
+    <div class="relative">
+      <div class="space-y-4" :class="deleting ? 'pointer-events-none opacity-50' : ''">
+        <DuplicateGroup v-for="group in groups" :key="group.hash"
+                        :group="group"
+                        :preselected-keep-id="batchSelections[group.hash] ?? null"
+                        :disabled="deleting"
+                        @delete="requestDelete"
+                        @delete-others="handleDeleteOthers" />
+      </div>
+      <Transition name="fade">
+        <div v-if="deleting" class="absolute inset-0 flex items-center justify-center z-10">
+          <div class="flex items-center gap-3 px-5 py-3 bg-bg-secondary/90 rounded-xl border border-white/10 shadow-lg backdrop-blur-sm">
+            <svg class="animate-spin h-5 w-5 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-sm text-text-primary">{{ $t('duplicates.deleting') }}</span>
+          </div>
+        </div>
+      </Transition>
     </div>
 
     <div v-if="!scanning && groups.length === 0 && folderPath" class="text-center text-text-muted text-sm mt-8">
@@ -157,5 +304,21 @@ async function confirmDeleteOthers() {
                    :confirm-text="$t('duplicates.delete')"
                    @confirm="confirmDeleteOthers"
                    @cancel="confirmDeleteOthersVisible = false" />
+
+    <ConfirmDialog :visible="confirmBatchVisible"
+                   :title="$t('duplicates.batchConfirmTitle')"
+                   :message="$t('duplicates.batchConfirmMessage', { count: pendingBatchPaths.length })"
+                   :confirm-text="$t('duplicates.delete')"
+                   @confirm="confirmBatchDelete"
+                   @cancel="confirmBatchVisible = false" />
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+</style>

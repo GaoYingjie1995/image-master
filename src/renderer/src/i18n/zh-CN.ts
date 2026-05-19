@@ -108,7 +108,16 @@ export default {
     confirmDeleteOthersMessage: '将删除 {count} 个重复文件并移入回收站，确定吗？',
     deleted: '已删除 {count} 个重复文件',
     kept: '✓ 已保留',
-    deleteOthers: '删除其他 {count} 个'
+    deleteOthers: '删除其他 {count} 个',
+    keepFolder: '保留文件夹',
+    selectKeepFolder: '选择保留文件夹',
+    batchSelect: '批量选择',
+    batchDelete: '删除已选 ({count})',
+    batchConfirmTitle: '批量删除重复文件',
+    batchConfirmMessage: '将删除 {count} 个重复文件（保留文件夹中的文件除外），文件将移入回收站，确定吗？',
+    batchResult: '批量删除完成：成功 {success}，失败 {failed}',
+    batchSkipped: '{count} 组因保留文件夹中无文件被跳过',
+    deleting: '删除中...'
   },
   cleanup: {
     title: 'RAW 文件清理',
