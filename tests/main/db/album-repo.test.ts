@@ -19,6 +19,14 @@ describe('AlbumRepo', () => {
         is_collapsed INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         FOREIGN KEY (parent_id) REFERENCES albums(id) ON DELETE CASCADE
+      );
+      CREATE TABLE album_photos (
+        album_id INTEGER NOT NULL,
+        photo_id INTEGER NOT NULL,
+        sort_order INTEGER DEFAULT 0,
+        PRIMARY KEY (album_id, photo_id),
+        FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+        FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE
       )
     `)
     repo = createAlbumRepo(db)
