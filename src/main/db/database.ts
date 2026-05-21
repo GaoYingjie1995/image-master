@@ -40,15 +40,6 @@ CREATE TABLE IF NOT EXISTS albums (
   FOREIGN KEY (parent_id) REFERENCES albums(id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS album_photos (
-  album_id INTEGER NOT NULL,
-  photo_id INTEGER NOT NULL,
-  sort_order INTEGER DEFAULT 0,
-  PRIMARY KEY (album_id, photo_id),
-  FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
-  FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE
-);
-
 CREATE TABLE IF NOT EXISTS smart_albums (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
