@@ -16,6 +16,7 @@ describe('PhotoRepo', () => {
         file_size INTEGER NOT NULL,
         file_hash TEXT,
         format TEXT NOT NULL,
+        parent_folder TEXT,
         raw_pair_id INTEGER,
         width INTEGER,
         height INTEGER,

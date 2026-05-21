@@ -13,9 +13,12 @@ describe('AlbumRepo', () => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         folder_path TEXT UNIQUE NOT NULL,
+        parent_id INTEGER,
         cover_photo_id INTEGER,
         description TEXT,
-        created_at TEXT NOT NULL
+        is_collapsed INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (parent_id) REFERENCES albums(id) ON DELETE CASCADE
       )
     `)
     repo = createAlbumRepo(db)

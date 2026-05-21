@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS photos (
   file_size INTEGER NOT NULL,
   file_hash TEXT,
   format TEXT NOT NULL,
+  parent_folder TEXT,
   raw_pair_id INTEGER,
   width INTEGER,
   height INTEGER,
@@ -31,18 +32,12 @@ CREATE TABLE IF NOT EXISTS albums (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   folder_path TEXT UNIQUE NOT NULL,
+  parent_id INTEGER,
   cover_photo_id INTEGER,
   description TEXT,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS album_photos (
-  album_id INTEGER NOT NULL,
-  photo_id INTEGER NOT NULL,
-  sort_order INTEGER DEFAULT 0,
-  PRIMARY KEY (album_id, photo_id),
-  FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
-  FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE
+  is_collapsed INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (parent_id) REFERENCES albums(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS smart_albums (
@@ -61,6 +56,8 @@ CREATE INDEX IF NOT EXISTS idx_photos_rating ON photos(rating);
 CREATE INDEX IF NOT EXISTS idx_photos_shot_at ON photos(shot_at);
 CREATE INDEX IF NOT EXISTS idx_photos_camera_model ON photos(camera_model);
 CREATE INDEX IF NOT EXISTS idx_photos_format ON photos(format);
+CREATE INDEX IF NOT EXISTS idx_photos_parent_folder ON photos(parent_folder);
+CREATE INDEX IF NOT EXISTS idx_albums_parent_id ON albums(parent_id);
 `
 
 export function createDatabase(dbPath?: string): Database.Database {
