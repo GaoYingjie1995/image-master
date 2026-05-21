@@ -1,5 +1,5 @@
 import { readdir, stat } from 'fs/promises'
-import { join, extname, basename } from 'path'
+import { join, extname, basename, dirname } from 'path'
 import { isImage, getFormat } from '../utils/file-types'
 import { parseExif } from './exif-parser'
 
@@ -14,6 +14,7 @@ interface PhotoInsertData {
   file_name: string
   file_size: number
   format: string
+  parent_folder?: string
   created_at: string
   modified_at: string
   shot_at?: string
@@ -54,6 +55,56 @@ export async function collectImageFiles(dir: string, recursive: boolean = true):
   return files
 }
 
+export interface FolderInfo {
+  path: string
+  name: string
+  parentPath: string | null
+  imageCount: number
+}
+
+export async function collectFolderStructure(dir: string): Promise<FolderInfo[]> {
+  const folders: FolderInfo[] = []
+
+  async function walk(currentDir: string, parentPath: string | null): Promise<void> {
+    let entries
+    try {
+      entries = await readdir(currentDir, { withFileTypes: true })
+    } catch {
+      return
+    }
+
+    let imageCount = 0
+    const subdirs: string[] = []
+
+    for (const entry of entries) {
+      if (entry.isSymbolicLink()) continue
+      if (entry.isFile()) {
+        const ext = extname(entry.name).slice(1).toLowerCase()
+        if (isImage(ext)) imageCount++
+      } else if (entry.isDirectory()) {
+        subdirs.push(join(currentDir, entry.name))
+      }
+    }
+
+    // Only record folders that contain images or subdirectories
+    if (imageCount > 0 || subdirs.length > 0) {
+      folders.push({
+        path: currentDir,
+        name: basename(currentDir),
+        parentPath,
+        imageCount
+      })
+    }
+
+    for (const subdir of subdirs) {
+      await walk(subdir, currentDir)
+    }
+  }
+
+  await walk(dir, null)
+  return folders
+}
+
 export async function scanSingleFile(filePath: string): Promise<PhotoInsertData | null> {
   try {
     const ext = extname(filePath).slice(1).toLowerCase()
@@ -76,11 +127,17 @@ export async function scanSingleFile(filePath: string): Promise<PhotoInsertData 
   }
 }
 
+export interface ScanResult {
+  count: number
+  folders: FolderInfo[]
+}
+
 export async function scanFolder(
   insertFn: (data: PhotoInsertData) => number,
   getExisting: (path: string) => unknown,
   options: ScanOptions
-): Promise<number> {
+): Promise<ScanResult> {
+  const folders = await collectFolderStructure(options.folderPath)
   const files = await collectImageFiles(options.folderPath, options.recursive !== false)
   let count = 0
 
@@ -90,6 +147,7 @@ export async function scanFolder(
 
     const data = await scanSingleFile(filePath)
     if (data) {
+      data.parent_folder = dirname(filePath)
       insertFn(data)
       count++
     }
@@ -97,5 +155,5 @@ export async function scanFolder(
     options.onProgress?.(i + 1, files.length)
   }
 
-  return count
+  return { count, folders }
 }
