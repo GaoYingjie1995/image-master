@@ -52,11 +52,20 @@ export function registerAlbumIpc(db: Database.Database) {
     return repo.getAll()
   })
 
-  ipcMain.handle('albums:create', async (_event, name: string, parentPath: string) => {
+  ipcMain.handle('albums:getTree', () => {
+    return repo.getTree()
+  })
+
+  ipcMain.handle('albums:create', async (_event, name: string, parentPath: string, parentId?: number | null) => {
     if (!name || name.includes('..') || name.includes('/') || name.includes('\\')) return null
     const folderPath = join(parentPath, name)
     await mkdir(folderPath, { recursive: true })
-    return repo.create({ name, folder_path: folderPath, created_at: new Date().toISOString() })
+    return repo.create({
+      name,
+      folder_path: folderPath,
+      parent_id: parentId ?? null,
+      created_at: new Date().toISOString()
+    })
   })
 
   ipcMain.handle('albums:delete', async (_event, id: number) => {
@@ -67,7 +76,6 @@ export function registerAlbumIpc(db: Database.Database) {
       await access(album.folder_path)
       await shell.trashItem(album.folder_path)
     } catch (error) {
-      // 目录不存在时清理数据库记录；移入回收站失败时保留记录，避免磁盘和数据库分叉
       if (!isNotFoundError(error)) {
         return { success: false, error: error instanceof Error ? error.message : 'Failed to move album to trash' }
       }
@@ -77,7 +85,6 @@ export function registerAlbumIpc(db: Database.Database) {
   })
 
   ipcMain.handle('albums:rename', async (_event, id: number, newName: string) => {
-    // 与 albums:create 一致的名称验证
     if (!newName || newName.includes('..') || newName.includes('/') || newName.includes('\\')) return null
     const album = repo.getById(id)
     if (!album) return
@@ -94,110 +101,42 @@ export function registerAlbumIpc(db: Database.Database) {
     }
     await rename(album.folder_path, newPath)
     repo.rename(id, newName, newPath)
+    // 级联更新子相册路径
+    repo.updateFolderPaths(album.folder_path, newPath)
+    // 级联更新照片路径
+    db.prepare('UPDATE photos SET parent_folder = REPLACE(parent_folder, ?, ?) WHERE parent_folder LIKE ?')
+      .run(album.folder_path, newPath, album.folder_path + '%')
+    db.prepare('UPDATE photos SET file_path = REPLACE(file_path, ?, ?), file_name = file_name WHERE file_path LIKE ?')
+      .run(album.folder_path, newPath, album.folder_path + '%')
     return { success: true }
   })
 
-  ipcMain.handle('albums:addPhoto', async (_event, albumId: number, photoId: number, photoPath: string) => {
-    const album = repo.getById(albumId)
-    if (!album) return
-
-    // 验证 photoPath 是数据库中已知的照片
-    const photo = db.prepare('SELECT 1 FROM photos WHERE file_path = ? AND id = ?').get(photoPath, photoId)
-    if (!photo) return
-
-    const fileName = basename(photoPath)
-    const resolved = await resolveConflictPath(album.folder_path, fileName, {
-      isReserved: (targetPath) => {
-        const existing = db.prepare('SELECT 1 FROM photos WHERE file_path = ? AND id <> ?').get(targetPath, photoId)
-        return !!existing
-      }
-    })
-    await rename(photoPath, resolved.path)
-    // 移动文件后同步更新照片路径
-    try {
-      db.prepare('UPDATE photos SET file_path = ?, file_name = ? WHERE id = ?').run(resolved.path, resolved.name, photoId)
-      repo.addPhoto(albumId, photoId)
-    } catch (error) {
-      try {
-        await rename(resolved.path, photoPath)
-      } catch { /* 保留原始数据库错误 */ }
-      throw error
-    }
-    // 自动设置相册封面（第一张照片）
-    const albumRow = repo.getById(albumId)
-    if (albumRow && !albumRow.cover_photo_id) {
-      repo.setCover(albumId, photoId)
-    }
+  ipcMain.handle('albums:setCollapsed', (_event, id: number, collapsed: boolean) => {
+    repo.setCollapsed(id, collapsed)
+    return { success: true }
   })
 
-  ipcMain.handle('albums:addPhotos', async (_event, albumId: number, photoIds: number[]) => {
-    const album = repo.getById(albumId)
-    if (!album) return { success: 0, failed: 0, errors: [] }
-
-    const succeeded: number[] = []
-    const errors: string[] = []
-
-    for (const photoId of photoIds) {
-      const photo = db.prepare('SELECT id, file_path, file_name FROM photos WHERE id = ?').get(photoId) as { id: number; file_path: string; file_name: string } | undefined
-      if (!photo) {
-        errors.push(`ID ${photoId}: 照片不存在`)
-        continue
-      }
-
-      try {
-        const resolved = await resolveConflictPath(album.folder_path, photo.file_name, {
-          isReserved: (targetPath) => {
-            const existing = db.prepare('SELECT 1 FROM photos WHERE file_path = ? AND id <> ?').get(targetPath, photoId)
-            return !!existing
-          }
-        })
-        await rename(photo.file_path, resolved.path)
-        try {
-          db.prepare('UPDATE photos SET file_path = ?, file_name = ? WHERE id = ?').run(resolved.path, resolved.name, photoId)
-          repo.addPhoto(albumId, photoId)
-        } catch (error) {
-          try {
-            await rename(resolved.path, photo.file_path)
-          } catch { /* 保留原始数据库错误 */ }
-          throw error
-        }
-        // 自动设置相册封面（第一张照片）
-        const albumRow = repo.getById(albumId)
-        if (albumRow && !albumRow.cover_photo_id) {
-          repo.setCover(albumId, photoId)
-        }
-        succeeded.push(photoId)
-      } catch (e) {
-        errors.push(`${photo.file_name}: ${e instanceof Error ? e.message : '移动失败'}`)
-      }
-    }
-
-    return { success: succeeded.length, failed: errors.length, errors }
-  })
-
-  ipcMain.handle('albums:removePhoto', (_event, albumId: number, photoId: number) => {
-    repo.removePhoto(albumId, photoId)
+  ipcMain.handle('albums:setCover', (_event, albumId: number, photoId: number) => {
+    repo.setCover(albumId, photoId)
     return { success: true }
   })
 
   ipcMain.handle('albums:getPhotoCount', (_event, albumId: number) => {
-    const row = db.prepare('SELECT COUNT(*) as count FROM album_photos WHERE album_id = ?').get(albumId) as { count: number }
-    return row.count
+    const album = repo.getById(albumId)
+    if (!album) return 0
+    return repo.getPhotoCountByPath(album.folder_path)
   })
 
   ipcMain.handle('albums:getAllPhotoCounts', () => {
-    const rows = db.prepare('SELECT album_id, COUNT(*) as count FROM album_photos GROUP BY album_id').all() as { album_id: number; count: number }[]
+    const albums = repo.getAll()
     const map: Record<number, number> = {}
-    for (const row of rows) {
-      map[row.album_id] = row.count
+    for (const album of albums) {
+      map[album.id] = repo.getPhotoCountByPath(album.folder_path)
     }
     return map
   })
 
-  ipcMain.handle('albums:getPhotos', (_event, albumId: number) => {
-    return repo.getPhotos(albumId)
-  })
-
+  // Smart Albums
   ipcMain.handle('smartAlbums:create', (_event, name: string, rules: string) => {
     if (!name || name.includes('..') || name.includes('/') || name.includes('\\')) {
       return { error: 'Invalid album name' }
