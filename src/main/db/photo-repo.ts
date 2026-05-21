@@ -6,6 +6,7 @@ export interface PhotoInsert {
   file_size: number
   file_hash?: string
   format: string
+  parent_folder?: string
   raw_pair_id?: number
   width?: number
   height?: number
@@ -31,6 +32,7 @@ export interface PhotoRow {
   file_size: number
   file_hash: string | null
   format: string
+  parent_folder: string | null
   raw_pair_id: number | null
   width: number | null
   height: number | null
@@ -71,14 +73,14 @@ export function createPhotoRepo(db: Database.Database) {
   `
 
   const insertStmt = db.prepare(`
-    INSERT INTO photos (file_path, file_name, file_size, file_hash, format, raw_pair_id, width, height, rating, color_label, is_rejected, created_at, modified_at, shot_at, camera_model, lens_model, iso, aperture, shutter_speed, gps_lat, gps_lng)
-    VALUES (@file_path, @file_name, @file_size, @file_hash, @format, @raw_pair_id, @width, @height, @rating, @color_label, @is_rejected, @created_at, @modified_at, @shot_at, @camera_model, @lens_model, @iso, @aperture, @shutter_speed, @gps_lat, @gps_lng)
+    INSERT INTO photos (file_path, file_name, file_size, file_hash, format, parent_folder, raw_pair_id, width, height, rating, color_label, is_rejected, created_at, modified_at, shot_at, camera_model, lens_model, iso, aperture, shutter_speed, gps_lat, gps_lng)
+    VALUES (@file_path, @file_name, @file_size, @file_hash, @format, @parent_folder, @raw_pair_id, @width, @height, @rating, @color_label, @is_rejected, @created_at, @modified_at, @shot_at, @camera_model, @lens_model, @iso, @aperture, @shutter_speed, @gps_lat, @gps_lng)
   `)
 
   return {
     insert(photo: PhotoInsert): number {
       const result = insertStmt.run({
-        file_hash: null, raw_pair_id: null, width: null, height: null,
+        file_hash: null, parent_folder: null, raw_pair_id: null, width: null, height: null,
         rating: 0, color_label: null, is_rejected: 0, shot_at: null,
         camera_model: null, lens_model: null, iso: null, aperture: null,
         shutter_speed: null, gps_lat: null, gps_lng: null,
@@ -136,8 +138,11 @@ export function createPhotoRepo(db: Database.Database) {
       } else if (filter === 'rejected') {
         conditions.push('is_rejected = 1')
       } else if (options?.albumId) {
-        conditions.push('id IN (SELECT photo_id FROM album_photos WHERE album_id = ?)')
-        params.push(options.albumId)
+        const album = db.prepare('SELECT folder_path FROM albums WHERE id = ?').get(options.albumId) as { folder_path: string } | undefined
+        if (album) {
+          conditions.push('parent_folder = ?')
+          params.push(album.folder_path)
+        }
       }
 
       conditions.push(HIDE_RAW_WITH_RENDERABLE_PAIR_CONDITION)
@@ -166,8 +171,11 @@ export function createPhotoRepo(db: Database.Database) {
       } else if (safeFilter === 'rejected') {
         conditions.push('is_rejected = 1')
       } else if (albumId) {
-        conditions.push('id IN (SELECT photo_id FROM album_photos WHERE album_id = ?)')
-        params.push(albumId)
+        const album = db.prepare('SELECT folder_path FROM albums WHERE id = ?').get(albumId) as { folder_path: string } | undefined
+        if (album) {
+          conditions.push('parent_folder = ?')
+          params.push(album.folder_path)
+        }
       }
 
       conditions.push(HIDE_RAW_WITH_RENDERABLE_PAIR_CONDITION)
@@ -195,8 +203,11 @@ export function createPhotoRepo(db: Database.Database) {
       } else if (safeFilter === 'rejected') {
         conditions.push('is_rejected = 1')
       } else if (albumId) {
-        conditions.push('id IN (SELECT photo_id FROM album_photos WHERE album_id = ?)')
-        params.push(albumId)
+        const album = db.prepare('SELECT folder_path FROM albums WHERE id = ?').get(albumId) as { folder_path: string } | undefined
+        if (album) {
+          conditions.push('parent_folder = ?')
+          params.push(album.folder_path)
+        }
       }
 
       conditions.push(HIDE_RAW_WITH_RENDERABLE_PAIR_CONDITION)

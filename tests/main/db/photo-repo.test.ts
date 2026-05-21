@@ -33,6 +33,12 @@ describe('PhotoRepo', () => {
         shutter_speed TEXT,
         gps_lat REAL,
         gps_lng REAL
+      );
+      CREATE TABLE albums (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        folder_path TEXT UNIQUE NOT NULL,
+        created_at TEXT NOT NULL
       )
     `)
     repo = createPhotoRepo(db)
@@ -112,5 +118,17 @@ describe('PhotoRepo', () => {
     const list = repo.getAll({ limit: 20, offset: 0 })
     expect(list).toHaveLength(1)
     expect(list[0].format).toBe('raf')
+  })
+
+  it('filter by parent_folder via albumId', () => {
+    db.prepare('INSERT INTO albums (id, name, folder_path, created_at) VALUES (?, ?, ?, ?)').run(1, 'Test', '/photos/test', '2024-01-01')
+    db.prepare(`INSERT INTO photos (file_path, file_name, file_size, format, parent_folder, created_at, modified_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run('/photos/test/a.jpg', 'a.jpg', 100, 'jpg', '/photos/test', '2024-01-01', '2024-01-01')
+    db.prepare(`INSERT INTO photos (file_path, file_name, file_size, format, parent_folder, created_at, modified_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run('/photos/other/b.jpg', 'b.jpg', 100, 'jpg', '/photos/other', '2024-01-01', '2024-01-01')
+
+    const photos = repo.getAll({ albumId: 1 })
+    expect(photos).toHaveLength(1)
+    expect(photos[0].file_name).toBe('a.jpg')
   })
 })
