@@ -1,6 +1,7 @@
 import { ipcMain, dialog, BrowserWindow, shell } from 'electron'
 import Database from 'better-sqlite3'
 import { createPhotoRepo } from '../db/photo-repo'
+import { createAlbumRepo } from '../db/album-repo'
 import { scanFolder } from '../services/scanner'
 import { getThumbnailPath, getThumbnailPathForPhoto, getPreviewPathForPhoto, generateThumbnail, generatePreview, getCacheSize, clearCache } from '../services/thumbnail'
 import { batchRename, batchExport } from '../services/batch-operations'
@@ -73,7 +74,9 @@ export function registerPhotoIpc(db: Database.Database) {
     if (result.canceled || !result.filePaths[0]) return null
 
     const folderPath = result.filePaths[0]
-    const count = await scanFolder(
+    const albumRepo = createAlbumRepo(db)
+
+    const scanResult = await scanFolder(
       (data) => repo.insert(data),
       (path) => repo.getByFilePath(path),
       {
@@ -84,7 +87,32 @@ export function registerPhotoIpc(db: Database.Database) {
       }
     )
 
-    return { folderPath, count }
+    // 根据目录结构自动创建相册树
+    const albumIdMap = new Map<string, number>()
+    for (const folder of scanResult.folders) {
+      const existing = albumRepo.getByFolderPath(folder.path)
+      if (existing) {
+        albumIdMap.set(folder.path, existing.id)
+        continue
+      }
+
+      const parentId = folder.parentPath ? albumIdMap.get(folder.parentPath) ?? null : null
+      const albumId = albumRepo.create({
+        name: folder.name,
+        folder_path: folder.path,
+        parent_id: parentId,
+        created_at: new Date().toISOString()
+      })
+      albumIdMap.set(folder.path, albumId)
+
+      // 自动将文件夹中的第一张照片设为封面
+      const firstPhoto = db.prepare('SELECT id FROM photos WHERE parent_folder = ? LIMIT 1').get(folder.path) as { id: number } | undefined
+      if (firstPhoto) {
+        albumRepo.setCover(albumId, firstPhoto.id)
+      }
+    }
+
+    return { folderPath, count: scanResult.count }
   })
 
   ipcMain.handle('photos:getThumbnail', async (_event, photoId: number) => {
