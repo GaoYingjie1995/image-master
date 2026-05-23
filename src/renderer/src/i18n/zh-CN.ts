@@ -81,7 +81,9 @@ export default {
     addToAlbumSuccess: '已添加 {count} 张照片到相册',
     addToAlbumFailed: '{count} 张照片添加失败',
     ruleValidationError: '规则校验失败：{error}',
-    removeFromAlbumSuccess: '已从相册移除'
+    removeFromAlbumSuccess: '已从相册移除',
+    importFirst: '请先导入文件夹',
+    coverUpdated: '封面已更新'
   },
   photos: {
     empty: '暂无照片',
@@ -208,7 +210,9 @@ export default {
     cancel: '取消',
     removeFromAlbum: '从相册移除',
     confirmRemove: '确定要从相册中移除这张照片吗？（文件不会被删除）',
-    photoCount: '{count} 张'
+    photoCount: '{count} 张',
+    childAlbums: '子相册',
+    setAsCover: '设为封面'
   },
   smartAlbum: {
     createTitle: '新建智能相册',

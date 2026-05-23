@@ -8,6 +8,7 @@ export interface Album {
   parent_id: number | null
   cover_photo_id: number | null
   is_collapsed: number
+  description: string | null
   created_at: string
   children?: Album[]
   photoCount?: number

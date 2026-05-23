@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3'
-import { join } from 'path'
+import { join, dirname, basename } from 'path'
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS photos (
@@ -74,6 +74,71 @@ export function createDatabase(dbPath?: string): Database.Database {
   const db = new Database(dbPath)
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
+
+  // 迁移：为旧数据库添加缺失的列
+  for (const stmt of [
+    'ALTER TABLE photos ADD COLUMN parent_folder TEXT',
+    'ALTER TABLE albums ADD COLUMN parent_id INTEGER REFERENCES albums(id) ON DELETE CASCADE',
+    'ALTER TABLE albums ADD COLUMN cover_photo_id INTEGER',
+    'ALTER TABLE albums ADD COLUMN is_collapsed INTEGER DEFAULT 0',
+  ]) {
+    try { db.exec(stmt) } catch { /* 列已存在则忽略 */ }
+  }
+
   db.exec(SCHEMA)
+
+  // 迁移：为已有照片填充 parent_folder，并自动创建相册记录
+  try {
+    const orphanPhotos = db.prepare(
+      'SELECT id, file_path FROM photos WHERE parent_folder IS NULL'
+    ).all() as { id: number; file_path: string }[]
+
+    if (orphanPhotos.length > 0) {
+      // 用 Node.js path 模块提取目录路径（兼容所有平台）
+      const updateStmt = db.prepare('UPDATE photos SET parent_folder = ? WHERE id = ?')
+      const folderSet = new Set<string>()
+      const migrate = db.transaction(() => {
+        for (const photo of orphanPhotos) {
+          const dir = dirname(photo.file_path)
+          updateStmt.run(dir, photo.id)
+          folderSet.add(dir)
+        }
+        // 为尚未创建相册的目录自动创建相册记录
+        const existingAlbums = db.prepare('SELECT folder_path FROM albums').all() as { folder_path: string }[]
+        const existingSet = new Set(existingAlbums.map(a => a.folder_path))
+        const insertStmt = db.prepare(
+          'INSERT INTO albums (name, folder_path, parent_id, is_collapsed, created_at) VALUES (?, ?, NULL, 0, datetime(\'now\'))'
+        )
+        // 按路径深度排序，确保父目录先创建
+        const sortedFolders = [...folderSet].filter(f => !existingSet.has(f)).sort((a, b) => a.length - b.length)
+        for (const folder of sortedFolders) {
+          insertStmt.run(basename(folder), folder)
+        }
+        // 建立层级关系：为每个相册找到最近的父相册
+        const allAlbums = db.prepare('SELECT id, folder_path FROM albums WHERE parent_id IS NULL').all() as { id: number; folder_path: string }[]
+        const updateParent = db.prepare('UPDATE albums SET parent_id = ? WHERE id = ?')
+        for (const album of allAlbums) {
+          const parentDir = dirname(album.folder_path)
+          if (parentDir !== album.folder_path) {
+            const parent = allAlbums.find(a => a.folder_path === parentDir)
+            if (parent) {
+              updateParent.run(parent.id, album.id)
+            }
+          }
+        }
+        // 为每个相册设置封面（该目录下的第一张照片）
+        const setCover = db.prepare('UPDATE albums SET cover_photo_id = ? WHERE id = ?')
+        const allAlbumsWithPath = db.prepare('SELECT id, folder_path FROM albums').all() as { id: number; folder_path: string }[]
+        for (const album of allAlbumsWithPath) {
+          const firstPhoto = db.prepare('SELECT id FROM photos WHERE parent_folder = ? LIMIT 1').get(album.folder_path) as { id: number } | undefined
+          if (firstPhoto) {
+            setCover.run(firstPhoto.id, album.id)
+          }
+        }
+      })
+      migrate()
+    }
+  } catch { /* 迁移失败不阻塞启动 */ }
+
   return db
 }

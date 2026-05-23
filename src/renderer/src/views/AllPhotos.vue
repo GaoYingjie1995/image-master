@@ -4,23 +4,58 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { usePhotosStore } from '../stores/photos'
 import { useSelectionStore } from '../stores/selection'
+import { useAlbumsStore } from '../stores/albums'
+import { createLocalFileUrl } from '@shared/local-protocol'
 import { ClipboardCopy, FolderOpen, Star, X, Ban, Trash2, Circle, Images } from 'lucide-vue-next'
 import PhotoGrid from '../components/photo/PhotoGrid.vue'
 import PhotoPreview from '../components/photo/PhotoPreview.vue'
 import BatchActionBar from '../components/common/BatchActionBar.vue'
 import ContextMenu from '../components/common/ContextMenu.vue'
-import AlbumPickerDialog from '../components/album/AlbumPickerDialog.vue'
-import ConfirmDialog from '../components/common/ConfirmDialog.vue'
 import { useToastStore } from '../stores/toast'
 import type { MenuItem } from '../components/common/ContextMenu.vue'
 import type { Photo } from '../stores/photos'
+import type { Album } from '../stores/albums'
 
 const route = useRoute()
 const router = useRouter()
 const photosStore = usePhotosStore()
 const selection = useSelectionStore()
+const albumsStore = useAlbumsStore()
 const toast = useToastStore()
 const { t } = useI18n()
+
+const childAlbums = ref<Album[]>([])
+const childCoverUrls = ref<Map<number, string>>(new Map())
+
+function findAlbumInTree(tree: Album[], id: number): Album | undefined {
+  for (const album of tree) {
+    if (album.id === id) return album
+    if (album.children?.length) {
+      const found = findAlbumInTree(album.children, id)
+      if (found) return found
+    }
+  }
+  return undefined
+}
+
+async function loadChildrenAlbums() {
+  if (route.name === 'album' && route.params.id) {
+    await albumsStore.fetchTree()
+    const album = findAlbumInTree(albumsStore.albums, Number(route.params.id))
+    childAlbums.value = album?.children || []
+    // 加载子相册封面缩略图
+    for (const child of childAlbums.value) {
+      if (child.cover_photo_id && window.electronAPI) {
+        try {
+          const path = await window.electronAPI.photos.getThumbnail(child.cover_photo_id)
+          if (path) childCoverUrls.value.set(child.id, createLocalFileUrl('local-thumbnail', path))
+        } catch { /* 忽略 */ }
+      }
+    }
+  } else {
+    childAlbums.value = []
+  }
+}
 
 const previewPhotoId = ref<number | null>(null)
 const showPreview = ref(false)
@@ -45,6 +80,7 @@ function loadPhotos() {
     photosStore.fetchPhotos({ filter: 'rejected' })
   } else if (name === 'album' && route.params.id) {
     photosStore.fetchPhotos({ albumId: Number(route.params.id) })
+    loadChildrenAlbums()
   } else if (name === 'smart-album' && route.params.id) {
     photosStore.fetchSmartAlbumPhotos(Number(route.params.id))
   } else {
@@ -148,26 +184,6 @@ function handleBatchExport() {
   router.push({ name: 'batch-export', query: { ids: Array.from(selection.selectedIds).join(',') } })
 }
 
-const showAlbumPicker = ref(false)
-
-function handleBatchAddToAlbum() {
-  showAlbumPicker.value = true
-}
-
-async function handleAlbumSelected(albumId: number) {
-  const ids = Array.from(selection.selectedIds)
-  if (ids.length === 0) return
-  const result = await window.electronAPI.albums.addPhotos(albumId, ids)
-  if (result.success > 0) {
-    photosStore.photos = photosStore.photos.filter(p => !selection.selectedIds.has(p.id))
-    selection.clear()
-    toast.show(t('toast.addToAlbumSuccess', { count: result.success }), 'success')
-  }
-  if (result.failed > 0) {
-    toast.show(t('toast.addToAlbumFailed', { count: result.failed }), 'error')
-  }
-}
-
 // 右键菜单
 const contextMenu = ref({ visible: false, x: 0, y: 0 })
 const contextPhoto = ref<Photo | null>(null)
@@ -216,26 +232,6 @@ async function contextDelete() {
   }
 }
 
-// 从相册移除
-const showRemoveConfirm = ref(false)
-const pendingRemovePhoto = ref<Photo | null>(null)
-
-function contextRemoveFromAlbum() {
-  if (!contextPhoto.value) return
-  pendingRemovePhoto.value = contextPhoto.value
-  showRemoveConfirm.value = true
-}
-
-async function confirmRemoveFromAlbum() {
-  if (!pendingRemovePhoto.value || !window.electronAPI) return
-  const albumId = Number(route.params.id)
-  await window.electronAPI.albums.removePhoto(albumId, pendingRemovePhoto.value.id)
-  photosStore.photos = photosStore.photos.filter(p => p.id !== pendingRemovePhoto.value?.id)
-  showRemoveConfirm.value = false
-  pendingRemovePhoto.value = null
-  toast.show(t('toast.removeFromAlbumSuccess'), 'success')
-}
-
 const COLOR_MAP: Record<string, string> = {
   red: '#ef4444', yellow: '#eab308', green: '#22c55e', blue: '#3b82f6', purple: '#a855f7'
 }
@@ -275,7 +271,12 @@ const contextMenuItems = computed<MenuItem[]>(() => {
     { label: t('contextMenu.delete'), icon: Trash2, action: contextDelete },
     ...(route.name === 'album' ? [
       { divider: true as const, label: '' },
-      { label: t('album.removeFromAlbum'), icon: Ban, action: contextRemoveFromAlbum }
+      { label: t('album.setAsCover'), icon: Images, action: async () => {
+        if (contextPhoto.value) {
+          await albumsStore.setCover(Number(route.params.id), contextPhoto.value.id)
+          toast.show(t('toast.coverUpdated'), 'success')
+        }
+      }}
     ] : [])
   ]
 })
@@ -291,7 +292,6 @@ const contextMenuItems = computed<MenuItem[]>(() => {
                     @reject="handleBatchReject"
                     @delete="handleBatchDelete"
                     @export="handleBatchExport"
-                    @add-to-album="handleBatchAddToAlbum"
                     @select-all="selection.selectAll(photosStore.photos.map(p => p.id))"
                     @deselect-all="selection.clear"
                     @clear="selection.clear" />
@@ -317,6 +317,29 @@ const contextMenuItems = computed<MenuItem[]>(() => {
 
     <!-- 照片网格 -->
     <template v-else>
+      <!-- 子相册卡片区域 -->
+      <div v-if="childAlbums.length > 0" class="px-4 py-3">
+        <div class="text-xs font-medium text-text-muted mb-2">{{ $t('album.childAlbums') }}</div>
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3">
+          <div
+            v-for="child in childAlbums"
+            :key="child.id"
+            class="group cursor-pointer"
+            @click="router.push(`/album/${child.id}`)"
+          >
+            <div class="aspect-square rounded-lg overflow-hidden bg-bg-tertiary">
+              <img
+                v-if="childCoverUrls.get(child.id)"
+                :src="childCoverUrls.get(child.id)"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              />
+            </div>
+            <div class="mt-1 text-sm text-text-primary truncate">{{ child.name }}</div>
+            <div class="text-xs text-text-muted">{{ child.photoCount || 0 }} 张</div>
+          </div>
+        </div>
+      </div>
+
       <PhotoGrid :photos="photosStore.photos"
                  :has-more="photosStore.hasMore"
                  :loading-more="photosStore.loadingMore"
@@ -338,17 +361,6 @@ const contextMenuItems = computed<MenuItem[]>(() => {
                    :y="contextMenu.y"
                    :items="contextMenuItems"
                    @close="closeContextMenu" />
-
-      <AlbumPickerDialog :visible="showAlbumPicker"
-                         @close="showAlbumPicker = false"
-                         @select="handleAlbumSelected" />
-
-      <ConfirmDialog :visible="showRemoveConfirm"
-                     :title="$t('album.removeFromAlbum')"
-                     :message="$t('album.confirmRemove')"
-                     :confirm-text="$t('album.removeFromAlbum')"
-                     @confirm="confirmRemoveFromAlbum"
-                     @cancel="showRemoveConfirm = false" />
     </template>
   </div>
 </template>

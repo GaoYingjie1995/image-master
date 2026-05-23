@@ -81,7 +81,9 @@ export default {
     addToAlbumSuccess: 'Added {count} photos to album',
     addToAlbumFailed: '{count} photos failed to add',
     ruleValidationError: 'Rule validation failed: {error}',
-    removeFromAlbumSuccess: 'Removed from album'
+    removeFromAlbumSuccess: 'Removed from album',
+    importFirst: 'Please import a folder first',
+    coverUpdated: 'Cover updated'
   },
   photos: {
     empty: 'No photos',
@@ -221,7 +223,9 @@ export default {
     cancel: 'Cancel',
     removeFromAlbum: 'Remove from Album',
     confirmRemove: 'Remove this photo from the album? (File will not be deleted)',
-    photoCount: '{count} photos'
+    photoCount: '{count} photos',
+    childAlbums: 'Child Albums',
+    setAsCover: 'Set as Cover'
   },
   smartAlbum: {
     createTitle: 'New Smart Album',

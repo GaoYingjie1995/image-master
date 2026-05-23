@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Star, X, Ban, FolderPlus, Download, Trash2, CheckSquare, Square } from 'lucide-vue-next'
+import { Star, X, Ban, Download, Trash2, CheckSquare, Square } from 'lucide-vue-next'
 
 const { t } = useI18n()
 
@@ -16,7 +16,6 @@ const emit = defineEmits<{
   (e: 'reject'): void
   (e: 'delete'): void
   (e: 'export'): void
-  (e: 'addToAlbum'): void
   (e: 'clear'): void
   (e: 'selectAll'): void
   (e: 'deselectAll'): void
@@ -80,13 +79,6 @@ const showColorPicker = ref(false)
     </button>
 
     <div class="w-px h-5 bg-white/5"></div>
-
-    <!-- 加入相册 -->
-    <button @click="emit('addToAlbum')"
-            class="text-text-secondary hover:text-text-primary transition-colors px-1.5 py-0.5 rounded hover:bg-bg-hover"
-            :title="$t('batchAction.addToAlbum')">
-      <FolderPlus :size="14" />
-    </button>
 
     <!-- 导出 -->
     <button @click="emit('export')"

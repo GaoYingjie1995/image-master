@@ -6,10 +6,12 @@ import Toolbar from './components/layout/Toolbar.vue'
 import StatusBar from './components/layout/StatusBar.vue'
 import ToastContainer from './components/common/ToastContainer.vue'
 import { usePhotosStore } from './stores/photos'
+import { useAlbumsStore } from './stores/albums'
 import { useSelectionStore } from './stores/selection'
 import { useToastStore } from './stores/toast'
 
 const photosStore = usePhotosStore()
+const albumsStore = useAlbumsStore()
 const selection = useSelectionStore()
 const toast = useToastStore()
 
@@ -19,8 +21,14 @@ async function handleImport() {
   try {
     const result = await window.electronAPI?.photos.importFolder()
     if (result) {
-      toast.success(`成功导入 ${(result as { count: number }).count} 张照片`)
+      const count = (result as { count: number }).count
+      if (count > 0) {
+        toast.success(`成功导入 ${count} 张照片`)
+      } else {
+        toast.info('该文件夹中的照片已全部导入过')
+      }
       await photosStore.refresh()
+      await albumsStore.fetchTree()
     }
   } catch (err) {
     toast.error('导入照片失败')

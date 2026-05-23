@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, defineComponent, h, type PropType } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '../../stores/toast'
-import { Image, Star, Clock, XCircle, Copy, Trash2, FileEdit, Download, Map as MapIcon, BarChart3, FolderOpen, Sparkles, Columns } from 'lucide-vue-next'
+import { useAlbumsStore, type Album } from '../../stores/albums'
+import { Image, Star, Clock, XCircle, Copy, Trash2, FileEdit, Download, Map as MapIcon, BarChart3, Columns, ChevronRight } from 'lucide-vue-next'
 import AlbumDialog from '../album/AlbumDialog.vue'
 import SmartAlbumDialog from '../album/SmartAlbumDialog.vue'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
@@ -13,18 +14,15 @@ const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
 const toast = useToastStore()
+const albumsStore = useAlbumsStore()
 
-interface Album { id: number; name: string; folder_path: string; cover_photo_id: number | null }
 interface SmartAlbum { id: number; name: string; rules: string }
 
-const albums = ref<Album[]>([])
 const smartAlbums = ref<SmartAlbum[]>([])
 const showAlbumDialog = ref(false)
 const showSmartAlbumDialog = ref(false)
 const albumCoverUrls = ref<Map<number, string>>(new Map())
-const albumPhotoCounts = ref<Map<number, number>>(new Map())
 const smartAlbumPhotoCounts = ref<Map<number, number>>(new Map())
-const dragOverAlbumId = ref<number | null>(null)
 
 // 智能相册编辑状态
 const editingSmartAlbum = ref<{ id: number; name: string; rules: string } | null>(null)
@@ -37,13 +35,15 @@ const renamingId = ref<number | null>(null)
 const renamingType = ref<'album' | 'smart'>('album')
 const renameInput = ref('')
 
+// 相册树
+const albumTree = computed(() => albumsStore.albums)
+
 async function loadAlbums() {
   if (window.electronAPI) {
-    albums.value = await window.electronAPI.albums.getAll()
+    // 加载相册树
+    await albumsStore.fetchTree()
+    // 加载智能相册
     smartAlbums.value = (await window.electronAPI.albums.getAllSmart()) as SmartAlbum[]
-    // 加载相册封面缩略图和照片计数
-    const counts = await window.electronAPI.albums.getAllPhotoCounts()
-    albumPhotoCounts.value = new Map(Object.entries(counts).map(([k, v]) => [Number(k), v]))
     // 加载智能相册照片计数
     for (const sa of smartAlbums.value) {
       try {
@@ -51,44 +51,137 @@ async function loadAlbums() {
         smartAlbumPhotoCounts.value.set(sa.id, photos.length)
       } catch { /* ignore */ }
     }
-    for (const album of albums.value) {
-      if (album.cover_photo_id && !albumCoverUrls.value.has(album.id)) {
-        const path = await window.electronAPI.photos.getThumbnail(album.cover_photo_id)
-        if (path) albumCoverUrls.value.set(album.id, createLocalFileUrl('local-thumbnail', path))
-      }
+    // 加载相册封面缩略图（递归遍历树）
+    await loadCoverThumbnails(albumTree.value)
+  }
+}
+
+async function loadCoverThumbnails(albums: Album[]) {
+  for (const album of albums) {
+    if (album.cover_photo_id && !albumCoverUrls.value.has(album.id)) {
+      const path = await window.electronAPI!.photos.getThumbnail(album.cover_photo_id)
+      if (path) albumCoverUrls.value.set(album.id, createLocalFileUrl('local-thumbnail', path))
+    }
+    if (album.children?.length) {
+      await loadCoverThumbnails(album.children)
     }
   }
 }
 
 onMounted(loadAlbums)
 
-// 拖拽照片到相册
-function handleAlbumDragOver(e: DragEvent, albumId: number) {
-  e.preventDefault()
-  e.dataTransfer!.dropEffect = 'copy'
-  dragOverAlbumId.value = albumId
-}
+// 递归树项组件
+const AlbumTreeItem = defineComponent({
+  name: 'AlbumTreeItem',
+  props: {
+    album: { type: Object as PropType<Album>, required: true },
+    depth: { type: Number, default: 0 }
+  },
+  setup(props) {
+    const router = useRouter()
+    const route = useRoute()
+    const { t } = useI18n()
+    const store = useAlbumsStore()
 
-function handleAlbumDragLeave() {
-  dragOverAlbumId.value = null
-}
+    const coverUrls = computed(() => albumCoverUrls.value)
+    const renaming = computed(() => renamingId.value === props.album.id && renamingType.value === 'album')
 
-async function handleAlbumDrop(e: DragEvent, albumId: number) {
-  e.preventDefault()
-  dragOverAlbumId.value = null
-  const data = e.dataTransfer?.getData('application/photo-ids')
-  if (!data || !window.electronAPI) return
-  try {
-    const photoIds = JSON.parse(data) as number[]
-    if (photoIds.length > 0) {
-      const result = await window.electronAPI.albums.addPhotos(albumId, photoIds)
-      toast.show(t('toast.addToAlbumSuccess', { count: result.success }), 'success')
-      await loadAlbums()
+    function isActive() {
+      return route.path === `/album/${props.album.id}`
     }
-  } catch {
-    toast.show(t('toast.addToAlbumFailed'), 'error')
+
+    function navigate() {
+      router.push(`/album/${props.album.id}`)
+    }
+
+    function handleKeydown(e: KeyboardEvent) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        navigate()
+      }
+    }
+
+    function toggleCollapse(e: Event) {
+      e.stopPropagation()
+      store.setCollapsed(props.album.id, props.album.is_collapsed === 0)
+    }
+
+    function showContext(e: MouseEvent) {
+      e.preventDefault()
+      e.stopPropagation()
+      contextMenu.value = { visible: true, x: e.clientX, y: e.clientY, type: 'album', item: props.album }
+    }
+
+    return () => {
+      const album = props.album
+      const hasChildren = album.children && album.children.length > 0
+      const isCollapsed = album.is_collapsed === 1
+      const indent = props.depth * 16
+
+      const children = hasChildren && !isCollapsed
+        ? album.children!.map((child: Album) =>
+            h(AlbumTreeItem, { album: child, depth: props.depth + 1, key: child.id })
+          )
+        : []
+
+      const coverUrl = coverUrls.value.get(album.id)
+      const photoCount = album.photoCount
+
+      return h('div', [
+        h('div', {
+          class: [
+            'flex items-center gap-2 py-1.5 px-3 rounded-md cursor-pointer transition-colors text-xs outline-none focus:ring-1 focus:ring-accent/50',
+            isActive()
+              ? 'bg-accent-dim text-accent'
+              : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
+          ],
+          style: { paddingLeft: `${12 + indent}px` },
+          tabindex: '0',
+          role: 'link',
+          'aria-current': isActive() ? 'page' : undefined,
+          onClick: navigate,
+          onKeydown: handleKeydown,
+          onContextmenu: showContext
+        }, [
+          hasChildren
+            ? h(ChevronRight, {
+                size: 14,
+                class: ['shrink-0 transition-transform', isCollapsed ? '' : 'rotate-90'],
+                'aria-hidden': true,
+                onClick: toggleCollapse
+              })
+            : h('span', { class: 'w-3.5 shrink-0' }),
+          coverUrl
+            ? h('img', {
+                src: coverUrl,
+                class: 'w-5 h-5 rounded object-cover shrink-0',
+                alt: album.name
+              })
+            : h('span', { class: 'w-2 h-2 rounded-full bg-accent shrink-0', 'aria-hidden': true }),
+          renaming.value
+            ? h('span', { class: 'flex-1 min-w-0' }, [
+                h('input', {
+                  value: renameInput.value,
+                  'onUpdate:modelValue': (v: string) => { renameInput.value = v },
+                  onKeyup: (e: KeyboardEvent) => {
+                    if (e.key === 'Enter') confirmRename()
+                    if (e.key === 'Escape') cancelRename()
+                  },
+                  onBlur: confirmRename,
+                  class: 'w-full bg-bg-tertiary border border-accent/30 rounded px-1 py-0.5 text-xs text-text-primary outline-none',
+                  autofocus: true
+                })
+              ])
+            : h('span', { class: 'truncate flex-1 min-w-0' }, album.name),
+          photoCount != null && photoCount > 0
+            ? h('span', { class: 'text-[10px] text-text-muted shrink-0' }, t('album.photoCount', { count: photoCount }))
+            : null
+        ]),
+        ...children
+      ])
+    }
   }
-}
+})
 
 const navItems = [
   { icon: Image, labelKey: 'nav.allPhotos', route: '/' },
@@ -126,12 +219,13 @@ function handleNavKeydown(e: KeyboardEvent, path: string) {
 }
 
 async function handleCreateAlbum(name: string) {
-  if (window.electronAPI) {
-    const parentPath = await window.electronAPI.cleanup.selectFolder()
-    if (!parentPath) return
-    await window.electronAPI.albums.create(name, parentPath)
-    await loadAlbums()
+  if (!albumTree.value.length) {
+    toast.show(t('toast.importFirst'), 'error')
+    return
   }
+  const parentPath = albumTree.value[0].folder_path
+  await albumsStore.createAlbum(name, parentPath)
+  showAlbumDialog.value = false
 }
 
 async function handleCreateSmartAlbum(name: string, rules: string) {
@@ -193,15 +287,13 @@ function startRename() {
 
 async function confirmRename() {
   if (!renamingId.value || !renameInput.value.trim()) return
-  if (window.electronAPI) {
-    if (renamingType.value === 'album') {
-      await window.electronAPI.albums.rename(renamingId.value, renameInput.value.trim())
-    } else {
-      await window.electronAPI.albums.renameSmart(renamingId.value, renameInput.value.trim())
-    }
-    renamingId.value = null
+  if (renamingType.value === 'album') {
+    await albumsStore.renameAlbum(renamingId.value, renameInput.value.trim())
+  } else if (window.electronAPI) {
+    await window.electronAPI.albums.renameSmart(renamingId.value, renameInput.value.trim())
     await loadAlbums()
   }
+  renamingId.value = null
 }
 
 function cancelRename() {
@@ -220,17 +312,17 @@ function deleteAlbum() {
 }
 
 async function confirmDeleteAlbum() {
-  if (!pendingDelete.value || !window.electronAPI) return
+  if (!pendingDelete.value) return
   const { type, item } = pendingDelete.value
   showDeleteConfirm.value = false
   pendingDelete.value = null
 
   if (type === 'album') {
-    await window.electronAPI.albums.delete(item.id)
-  } else {
+    await albumsStore.deleteAlbum(item.id)
+  } else if (window.electronAPI) {
     await window.electronAPI.albums.deleteSmart(item.id)
+    await loadAlbums()
   }
-  await loadAlbums()
   if (route.params.id && Number(route.params.id) === item.id) {
     router.push('/')
   }
@@ -317,33 +409,9 @@ async function confirmDeleteAlbum() {
 
       <div class="h-px bg-white/5 mx-0 my-2" role="separator"></div>
 
-      <!-- 手动相册 -->
+      <!-- 手动相册（树状结构） -->
       <div class="text-[10px] font-medium text-text-muted uppercase tracking-[1.5px] px-3 pb-1.5" role="heading" aria-level="2">{{ $t('nav.albums') }}</div>
-      <div v-for="album in albums" :key="album.id"
-           @click="navigate(`/album/${album.id}`)"
-           @keydown="handleNavKeydown($event, `/album/${album.id}`)"
-           @contextmenu.prevent="showAlbumContext($event, 'album', album)"
-           @dragover="handleAlbumDragOver($event, album.id)"
-           @dragleave="handleAlbumDragLeave()"
-           @drop="handleAlbumDrop($event, album.id)"
-           tabindex="0"
-           role="link"
-           :aria-current="isActive(`/album/${album.id}`) ? 'page' : undefined"
-           class="flex items-center gap-2 py-1.5 px-3 rounded-md cursor-pointer transition-colors text-xs outline-none focus:ring-1 focus:ring-accent/50"
-           :class="[
-             isActive(`/album/${album.id}`) ? 'bg-accent-dim text-accent' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary',
-             dragOverAlbumId === album.id ? 'ring-1 ring-accent/50 bg-accent/5' : ''
-           ]">
-        <img v-if="albumCoverUrls.get(album.id)" :src="albumCoverUrls.get(album.id)"
-             class="w-6 h-6 rounded object-cover shrink-0" :alt="album.name" />
-        <span v-else class="w-2 h-2 rounded-full bg-accent shrink-0" aria-hidden="true"></span>
-        <span v-if="renamingId === album.id && renamingType === 'album'" class="flex-1 min-w-0">
-          <input v-model="renameInput" @keyup.enter="confirmRename" @keyup.escape="cancelRename" @blur="confirmRename"
-                 class="w-full bg-bg-tertiary border border-accent/30 rounded px-1 py-0.5 text-xs text-text-primary outline-none" autofocus />
-        </span>
-        <span v-else class="truncate flex-1 min-w-0">{{ album.name }}</span>
-        <span v-if="albumPhotoCounts.has(album.id)" class="text-[10px] text-text-muted shrink-0">{{ $t('album.photoCount', { count: albumPhotoCounts.get(album.id) }) }}</span>
-      </div>
+      <AlbumTreeItem v-for="album in albumTree" :key="album.id" :album="album" :depth="0" />
       <button @click="showAlbumDialog = true"
               class="flex items-center gap-2 py-1.5 px-3 text-xs text-text-muted cursor-pointer hover:text-accent transition-colors w-full text-left">
         {{ $t('nav.newAlbum') }}

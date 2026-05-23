@@ -40,16 +40,15 @@ interface ElectronAPI {
     rescanMetadata: () => Promise<{ updated: number; total: number }>
   }
   albums: {
-    getAll: () => Promise<Array<{ id: number; name: string; folder_path: string; cover_photo_id: number | null; created_at: string }>>
-    create: (name: string, parentPath: string) => Promise<unknown>
+    getAll: () => Promise<Array<{ id: number; name: string; folder_path: string; parent_id: number | null; cover_photo_id: number | null; is_collapsed: number; description: string | null; created_at: string }>>
+    getTree: () => Promise<Array<{ id: number; name: string; folder_path: string; parent_id: number | null; cover_photo_id: number | null; is_collapsed: number; description: string | null; created_at: string; children: any[]; photoCount: number }>>
+    create: (name: string, parentPath: string, parentId?: number | null) => Promise<unknown>
     delete: (id: number) => Promise<{ success: boolean; error?: string }>
     rename: (id: number, name: string) => Promise<{ success?: boolean; error?: string } | null | undefined>
-    addPhoto: (albumId: number, photoId: number, photoPath: string) => Promise<void>
-    addPhotos: (albumId: number, photoIds: number[]) => Promise<{ success: number; failed: number; errors: string[] }>
-    removePhoto: (albumId: number, photoId: number) => Promise<{ success: boolean }>
+    setCollapsed: (id: number, collapsed: boolean) => Promise<void>
+    setCover: (albumId: number, photoId: number) => Promise<void>
     getPhotoCount: (albumId: number) => Promise<number>
     getAllPhotoCounts: () => Promise<Record<number, number>>
-    getPhotos: (albumId: number) => Promise<unknown[]>
     createSmart: (name: string, rules: string) => Promise<{ id?: number; error?: string }>
     getAllSmart: () => Promise<unknown[]>
     deleteSmart: (id: number) => Promise<void>
