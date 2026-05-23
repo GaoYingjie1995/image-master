@@ -79,5 +79,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     get: (key: string) => ipcRenderer.invoke('settings:get', key),
     set: (key: string, value: unknown) => ipcRenderer.invoke('settings:set', key, value),
     getAll: () => ipcRenderer.invoke('settings:getAll')
+  },
+
+  importSources: {
+    getAll: () => ipcRenderer.invoke('importSources:getAll'),
+    getAlbumTree: (sourceId: number) => ipcRenderer.invoke('importSources:getAlbumTree', sourceId),
+    add: () => ipcRenderer.invoke('importSources:add'),
+    remove: (id: number) => ipcRenderer.invoke('importSources:remove', id),
+    removeSubfolder: (sourceId: number, folderPath: string) => ipcRenderer.invoke('importSources:removeSubfolder', sourceId, folderPath),
+    refresh: (sourceId: number) => ipcRenderer.invoke('importSources:refresh', sourceId),
+    reimportSubfolder: (sourceId: number, folderPath: string) => ipcRenderer.invoke('importSources:reimportSubfolder', sourceId, folderPath),
+    onScanProgress: (callback: (data: { current: number; total: number }) => void) => {
+      const handler = (_e: Electron.IpcRendererEvent, data: { current: number; total: number }) => callback(data)
+      ipcRenderer.on('photos:scanProgress', handler)
+      return () => { ipcRenderer.removeListener('photos:scanProgress', handler) }
+    }
   }
 })

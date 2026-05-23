@@ -21,7 +21,8 @@ export default {
     smartAlbums: 'Smart Albums',
     albums: 'Albums',
     newAlbum: '+ New Album',
-    newSmartAlbum: '+ New Smart Album'
+    newSmartAlbum: '+ New Smart Album',
+    importSources: 'Import Folders'
   },
   toolbar: {
     date: 'Date',
@@ -318,5 +319,29 @@ export default {
     dateTaken: 'Date Taken',
     dateModified: 'Date Modified',
     noExif: 'No EXIF data'
+  },
+  imports: {
+    title: 'Import Folder Management',
+    add: 'Add Folder',
+    remove: 'Remove',
+    empty: 'No import folders',
+    emptyHint: 'Click the button above to import a photo folder',
+    albumCount: '{count} albums',
+    photoCount: '{count} photos',
+    importedAt: 'Imported on {date}',
+    confirmRemove: 'Remove this import folder? This will delete {photoCount} photo records and {albumCount} albums, but will NOT delete the original files.',
+    confirmTitle: 'Remove Import Folder',
+    confirmRemoveChild: 'Remove Subfolder',
+    confirmRemoveChildMsg: 'Remove subfolder "{name}"? This will delete {photoCount} photo records, but will NOT delete the original files.',
+    addSuccess: 'Successfully imported {count} photos',
+    alreadyImported: 'This folder has already been imported',
+    removeSuccess: 'Import folder removed',
+    removeChildSuccess: 'Subfolder removed',
+    scanProgress: 'Scanning {current}/{total}...',
+    refresh: 'Refresh',
+    removeChild: 'Remove',
+    reimport: 'Re-import',
+    importNew: 'Import',
+    noChildren: 'No subfolders'
   }
 }

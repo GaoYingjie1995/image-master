@@ -21,7 +21,8 @@ export default {
     smartAlbums: '智能相册',
     albums: '相册',
     newAlbum: '+ 新建相册',
-    newSmartAlbum: '+ 新建智能相册'
+    newSmartAlbum: '+ 新建智能相册',
+    importSources: '导入文件夹'
   },
   toolbar: {
     date: '日期',
@@ -318,5 +319,29 @@ export default {
     deleteOthers: '删除其他 {count} 个',
     selectAll: '全选',
     deselectAll: '取消全选'
+  },
+  imports: {
+    title: '导入文件夹管理',
+    add: '添加文件夹',
+    remove: '移除',
+    empty: '暂无导入文件夹',
+    emptyHint: '点击上方按钮导入照片文件夹',
+    albumCount: '{count} 个相册',
+    photoCount: '{count} 张照片',
+    importedAt: '导入于 {date}',
+    confirmRemove: '确定要移除此导入文件夹吗？将删除 {photoCount} 张照片记录和 {albumCount} 个相册，但不会删除原始文件。',
+    confirmTitle: '移除导入文件夹',
+    confirmRemoveChild: '移除子文件夹',
+    confirmRemoveChildMsg: '确定要移除子文件夹 "{name}" 吗？将删除 {photoCount} 张照片记录，但不会删除原始文件。',
+    addSuccess: '成功导入 {count} 张照片',
+    alreadyImported: '该文件夹已导入过',
+    removeSuccess: '已移除导入文件夹',
+    removeChildSuccess: '已移除子文件夹',
+    scanProgress: '扫描中 {current}/{total}...',
+    refresh: '刷新',
+    removeChild: '移除',
+    reimport: '重新导入',
+    importNew: '导入',
+    noChildren: '暂无子目录'
   },
 }

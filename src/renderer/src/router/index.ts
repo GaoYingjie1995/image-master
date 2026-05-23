@@ -14,6 +14,7 @@ const routes = [
   { path: '/map', name: 'map', component: () => import('../views/MapView.vue') },
   { path: '/histogram', name: 'histogram', component: () => import('../views/HistogramView.vue') },
   { path: '/compare', name: 'compare', component: () => import('../views/CompareView.vue') },
+  { path: '/imports', name: 'imports', component: () => import('../views/ImportsView.vue') },
   { path: '/settings', name: 'settings', component: () => import('../views/SettingsView.vue') }
 ]
 

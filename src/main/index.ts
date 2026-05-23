@@ -6,6 +6,7 @@ import { registerPhotoIpc } from './ipc/photos'
 import { registerAlbumIpc } from './ipc/albums'
 import { registerCleanupIpc } from './ipc/cleanup'
 import { registerSettingsIpc } from './ipc/settings'
+import { registerImportSourceIpc } from './ipc/import-sources'
 import { setThumbnailDir } from './services/thumbnail'
 import { getPathFromLocalFileUrl } from '../shared/local-protocol'
 
@@ -14,6 +15,7 @@ registerPhotoIpc(db)
 registerAlbumIpc(db)
 registerCleanupIpc(db)
 registerSettingsIpc(db)
+registerImportSourceIpc(db)
 
 const thumbnailDir = join(app.getPath('userData'), 'thumbnails')
 setThumbnailDir(thumbnailDir)

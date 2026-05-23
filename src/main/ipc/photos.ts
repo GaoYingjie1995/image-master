@@ -2,6 +2,7 @@ import { ipcMain, dialog, BrowserWindow, shell } from 'electron'
 import Database from 'better-sqlite3'
 import { createPhotoRepo } from '../db/photo-repo'
 import { createAlbumRepo } from '../db/album-repo'
+import { createImportSourceRepo } from '../db/import-source-repo'
 import { scanFolder } from '../services/scanner'
 import { getThumbnailPath, getThumbnailPathForPhoto, getPreviewPathForPhoto, generateThumbnail, generatePreview, getCacheSize, clearCache } from '../services/thumbnail'
 import { batchRename, batchExport } from '../services/batch-operations'
@@ -75,6 +76,19 @@ export function registerPhotoIpc(db: Database.Database) {
 
     const folderPath = result.filePaths[0]
     const albumRepo = createAlbumRepo(db)
+    const sourceRepo = createImportSourceRepo(db)
+
+    // 创建或获取 import_source 记录
+    let sourceId: number
+    const existingSource = sourceRepo.getByFolderPath(folderPath)
+    if (existingSource) {
+      sourceId = existingSource.id
+    } else {
+      sourceId = sourceRepo.create({
+        folder_path: folderPath,
+        imported_at: new Date().toISOString()
+      })
+    }
 
     const scanResult = await scanFolder(
       (data) => repo.insert(data),
@@ -92,6 +106,9 @@ export function registerPhotoIpc(db: Database.Database) {
     for (const folder of scanResult.folders) {
       const existing = albumRepo.getByFolderPath(folder.path)
       if (existing) {
+        // 已存在的相册也需要更新 parent_id 和 import_source_id
+        const parentId = folder.parentPath ? albumIdMap.get(folder.parentPath) ?? null : null
+        db.prepare('UPDATE albums SET parent_id = ?, import_source_id = ? WHERE id = ?').run(parentId, sourceId, existing.id)
         albumIdMap.set(folder.path, existing.id)
         continue
       }
@@ -103,6 +120,8 @@ export function registerPhotoIpc(db: Database.Database) {
         parent_id: parentId,
         created_at: new Date().toISOString()
       })
+      // 更新 import_source_id
+      db.prepare('UPDATE albums SET import_source_id = ? WHERE id = ?').run(sourceId, albumId)
       albumIdMap.set(folder.path, albumId)
 
       // 自动将文件夹中的第一张照片设为封面

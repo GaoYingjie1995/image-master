@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '../../stores/toast'
 import { useAlbumsStore, type Album } from '../../stores/albums'
-import { Image, Star, Clock, XCircle, Copy, Trash2, FileEdit, Download, Map as MapIcon, BarChart3, Columns, ChevronRight } from 'lucide-vue-next'
+import { Image, Star, Clock, XCircle, Copy, Trash2, FileEdit, Download, Map as MapIcon, BarChart3, Columns, ChevronRight, FolderInput } from 'lucide-vue-next'
 import AlbumDialog from '../album/AlbumDialog.vue'
 import SmartAlbumDialog from '../album/SmartAlbumDialog.vue'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
@@ -203,6 +203,10 @@ const analysisItems = [
   { icon: Columns, labelKey: 'nav.compare', route: '/compare' }
 ]
 
+const manageItems = [
+  { icon: FolderInput, labelKey: 'nav.importSources', route: '/imports' }
+]
+
 function isActive(path: string) {
   return route.path === path
 }
@@ -368,6 +372,23 @@ async function confirmDeleteAlbum() {
     <div class="px-3 mb-2">
       <div class="text-[10px] font-medium text-text-muted uppercase tracking-[1.5px] px-3 pb-1.5" role="heading" aria-level="2">{{ $t('nav.analysis') }}</div>
       <div v-for="item in analysisItems" :key="item.route"
+           @click="navigate(item.route)"
+           @keydown="handleNavKeydown($event, item.route)"
+           tabindex="0"
+           role="link"
+           :aria-current="isActive(item.route) ? 'page' : undefined"
+           class="flex items-center gap-2.5 py-[7px] px-3 rounded-md cursor-pointer transition-colors text-[13px] outline-none focus:ring-1 focus:ring-accent/50"
+           :class="isActive(item.route) ? 'bg-accent-dim text-accent' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'">
+        <component :is="item.icon" :size="16" class="shrink-0" aria-hidden="true" />
+        <span>{{ $t(item.labelKey) }}</span>
+      </div>
+    </div>
+
+    <div class="h-px bg-white/5 mx-3 my-2" role="separator"></div>
+
+    <div class="px-3 mb-2">
+      <div class="text-[10px] font-medium text-text-muted uppercase tracking-[1.5px] px-3 pb-1.5" role="heading" aria-level="2">管理</div>
+      <div v-for="item in manageItems" :key="item.route"
            @click="navigate(item.route)"
            @keydown="handleNavKeydown($event, item.route)"
            tabindex="0"

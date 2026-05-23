@@ -68,6 +68,16 @@ interface ElectronAPI {
     set: (key: string, value: unknown) => Promise<void>
     getAll: () => Promise<Record<string, unknown>>
   }
+  importSources: {
+    getAll: () => Promise<Array<{ id: number; folder_path: string; imported_at: string; albumCount: number; photoCount: number }>>
+    getAlbumTree: (sourceId: number) => Promise<Array<{ id: number; name: string; folder_path: string; parent_id: number | null; photoCount: number; children: any[] }>>
+    add: () => Promise<{ folderPath: string; count: number; alreadyImported?: boolean } | null>
+    remove: (id: number) => Promise<{ success: boolean; photoCount?: number; albumCount?: number }>
+    removeSubfolder: (sourceId: number, folderPath: string) => Promise<{ success: boolean; photoCount?: number; albumCount?: number }>
+    refresh: (sourceId: number) => Promise<{ imported: Array<{ id: number; name: string; folder_path: string }>; removed: Array<{ path: string; removed_at: string }>; new: Array<{ path: string; name: string }> }>
+    reimportSubfolder: (sourceId: number, folderPath: string) => Promise<{ folderPath: string; count: number } | null>
+    onScanProgress: (callback: (data: { current: number; total: number }) => void) => () => void
+  }
 }
 
 interface Window {

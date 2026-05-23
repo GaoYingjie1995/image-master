@@ -2,6 +2,20 @@ import Database from 'better-sqlite3'
 import { join, dirname, basename } from 'path'
 
 const SCHEMA = `
+CREATE TABLE IF NOT EXISTS import_sources (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  folder_path TEXT UNIQUE NOT NULL,
+  imported_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS import_removed_folders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_id INTEGER NOT NULL REFERENCES import_sources(id) ON DELETE CASCADE,
+  folder_path TEXT NOT NULL,
+  removed_at TEXT NOT NULL,
+  UNIQUE(source_id, folder_path)
+);
+
 CREATE TABLE IF NOT EXISTS photos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   file_path TEXT UNIQUE NOT NULL,
@@ -37,6 +51,7 @@ CREATE TABLE IF NOT EXISTS albums (
   description TEXT,
   is_collapsed INTEGER DEFAULT 0,
   created_at TEXT NOT NULL,
+  import_source_id INTEGER REFERENCES import_sources(id) ON DELETE SET NULL,
   FOREIGN KEY (parent_id) REFERENCES albums(id) ON DELETE CASCADE
 );
 
@@ -58,6 +73,7 @@ CREATE INDEX IF NOT EXISTS idx_photos_camera_model ON photos(camera_model);
 CREATE INDEX IF NOT EXISTS idx_photos_format ON photos(format);
 CREATE INDEX IF NOT EXISTS idx_photos_parent_folder ON photos(parent_folder);
 CREATE INDEX IF NOT EXISTS idx_albums_parent_id ON albums(parent_id);
+CREATE INDEX IF NOT EXISTS idx_albums_import_source_id ON albums(import_source_id);
 `
 
 export function createDatabase(dbPath?: string): Database.Database {
@@ -81,6 +97,7 @@ export function createDatabase(dbPath?: string): Database.Database {
     'ALTER TABLE albums ADD COLUMN parent_id INTEGER REFERENCES albums(id) ON DELETE CASCADE',
     'ALTER TABLE albums ADD COLUMN cover_photo_id INTEGER',
     'ALTER TABLE albums ADD COLUMN is_collapsed INTEGER DEFAULT 0',
+    'ALTER TABLE albums ADD COLUMN import_source_id INTEGER REFERENCES import_sources(id) ON DELETE SET NULL',
   ]) {
     try { db.exec(stmt) } catch { /* 列已存在则忽略 */ }
   }
@@ -137,6 +154,41 @@ export function createDatabase(dbPath?: string): Database.Database {
         }
       })
       migrate()
+    }
+  } catch { /* 迁移失败不阻塞启动 */ }
+
+  // 迁移：为现有数据创建 import_sources 记录
+  try {
+    const hasImportSources = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='import_sources'").get()
+    if (hasImportSources) {
+      const existingSources = db.prepare('SELECT COUNT(*) as count FROM import_sources').get() as { count: number }
+      if (existingSources.count === 0) {
+        // 识别根相册：folder_path 不是其他相册 folder_path 的子路径
+        const rootAlbums = db.prepare(`
+          SELECT a.id, a.folder_path, a.created_at FROM albums a
+          WHERE a.parent_id IS NULL
+            AND NOT EXISTS (
+              SELECT 1 FROM albums b
+              WHERE b.id != a.id
+                AND a.folder_path LIKE b.folder_path || '/%'
+            )
+          ORDER BY a.created_at ASC
+        `).all() as { id: number; folder_path: string; created_at: string }[]
+
+        const insertSource = db.prepare('INSERT INTO import_sources (folder_path, imported_at) VALUES (?, ?)')
+        const updateAlbum = db.prepare('UPDATE albums SET import_source_id = ? WHERE id = ?')
+        const updateDescendants = db.prepare('UPDATE albums SET import_source_id = ? WHERE folder_path LIKE ?')
+
+        const migrate = db.transaction(() => {
+          for (const album of rootAlbums) {
+            const result = insertSource.run(album.folder_path, album.created_at)
+            const sourceId = Number(result.lastInsertRowid)
+            updateAlbum.run(sourceId, album.id)
+            updateDescendants.run(sourceId, album.folder_path + '/%')
+          }
+        })
+        migrate()
+      }
     }
   } catch { /* 迁移失败不阻塞启动 */ }
 
