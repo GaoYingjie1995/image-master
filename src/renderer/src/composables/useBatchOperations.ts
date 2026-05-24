@@ -1,0 +1,54 @@
+import { useSelectionStore } from '../stores/selection'
+import { usePhotosStore } from '../stores/photos'
+
+export function useBatchOperations() {
+  const selection = useSelectionStore()
+  const photosStore = usePhotosStore()
+
+  async function batchRate(rating: number) {
+    const ids = Array.from(selection.selectedIds)
+    if (ids.length === 0) return
+    await window.electronAPI.photos.batchUpdateRating(ids, rating)
+    for (const photo of photosStore.photos) {
+      if (selection.selectedIds.has(photo.id)) {
+        photo.rating = rating
+      }
+    }
+  }
+
+  async function batchColorLabel(label: string | null) {
+    const ids = Array.from(selection.selectedIds)
+    for (const id of ids) {
+      await window.electronAPI.photos.updateColorLabel(id, label)
+    }
+    for (const photo of photosStore.photos) {
+      if (selection.selectedIds.has(photo.id)) {
+        photo.color_label = label
+      }
+    }
+  }
+
+  async function batchReject() {
+    const ids = Array.from(selection.selectedIds)
+    for (const id of ids) {
+      await window.electronAPI.photos.updateRejected(id, true)
+    }
+    for (const photo of photosStore.photos) {
+      if (selection.selectedIds.has(photo.id)) {
+        photo.is_rejected = 1
+      }
+    }
+  }
+
+  async function batchDelete() {
+    const ids = Array.from(selection.selectedIds)
+    if (ids.length === 0) return
+    const result = await window.electronAPI.photos.batchDelete(ids)
+    if (result.success > 0) {
+      photosStore.photos = photosStore.photos.filter(p => !selection.selectedIds.has(p.id))
+      selection.clear()
+    }
+  }
+
+  return { batchRate, batchColorLabel, batchReject, batchDelete }
+}
