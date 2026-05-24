@@ -100,14 +100,17 @@ export function registerAlbumIpc(db: Database.Database) {
       }
     }
     await rename(album.folder_path, newPath)
-    repo.rename(id, newName, newPath)
-    // 级联更新子相册路径
-    repo.updateFolderPaths(album.folder_path, newPath)
-    // 级联更新照片路径
-    db.prepare('UPDATE photos SET parent_folder = REPLACE(parent_folder, ?, ?) WHERE parent_folder LIKE ?')
-      .run(album.folder_path, newPath, album.folder_path + '%')
-    db.prepare('UPDATE photos SET file_path = REPLACE(file_path, ?, ?), file_name = file_name WHERE file_path LIKE ?')
-      .run(album.folder_path, newPath, album.folder_path + '%')
+    const updatePaths = db.transaction(() => {
+      repo.rename(id, newName, newPath)
+      // 级联更新子相册路径
+      repo.updateFolderPaths(album.folder_path, newPath)
+      // 级联更新照片路径（file_name 是基础文件名，无需更新）
+      db.prepare('UPDATE photos SET parent_folder = REPLACE(parent_folder, ?, ?) WHERE parent_folder LIKE ?')
+        .run(album.folder_path, newPath, album.folder_path + '%')
+      db.prepare('UPDATE photos SET file_path = REPLACE(file_path, ?, ?) WHERE file_path LIKE ?')
+        .run(album.folder_path, newPath, album.folder_path + '%')
+    })
+    updatePaths()
     return { success: true }
   })
 

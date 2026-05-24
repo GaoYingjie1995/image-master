@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '../stores/settings'
 import { useKeyboard, type KeyBindings } from '../composables/useKeyboard'
 import { useToastStore } from '../stores/toast'
+import { formatFileSize as formatSize } from '@renderer/utils/format'
 
 const { locale, t } = useI18n()
 
@@ -33,13 +34,6 @@ async function loadCacheInfo() {
   if (window.electronAPI) {
     cacheInfo.value = await window.electronAPI.photos.getCacheSize()
   }
-}
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-  return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
 }
 
 async function handleClearCache() {

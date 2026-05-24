@@ -1,7 +1,5 @@
 import { getFileNameWithoutExt } from '../utils/path-utils'
 
-const RAW_EXTENSIONS = ['cr2', 'cr3', 'nef', 'arw', 'orf', 'raf', 'dng', 'pef', 'srw', 'rw2']
-
 export interface RawPair {
   raw: { id: number; file_path: string; file_name: string }
   jpeg: { id: number; file_path: string; file_name: string } | null

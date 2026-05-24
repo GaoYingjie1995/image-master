@@ -4,10 +4,9 @@ import { createPhotoRepo } from '../db/photo-repo'
 import { createSettingsRepo } from '../db/settings-repo'
 import { getThumbnailDir } from './thumbnail'
 import { getFileNameWithoutExt } from '../utils/path-utils'
+import { getRawExtensions } from '../utils/file-types'
 import { dirname, join } from 'path'
 import { readdir, unlink } from 'fs/promises'
-
-const RAW_EXTENSIONS = ['cr2', 'cr3', 'nef', 'arw', 'orf', 'raf', 'dng', 'pef', 'srw', 'rw2']
 
 export interface DeleteResult {
   success: number
@@ -40,7 +39,7 @@ export async function deletePhotos(db: Database.Database, ids: number[]): Promis
       if (deleteLinkedRaw && photo.format !== 'raw') {
         const baseName = getFileNameWithoutExt(photo.file_path)
         const dir = dirname(photo.file_path)
-        for (const ext of RAW_EXTENSIONS) {
+        for (const ext of getRawExtensions()) {
           const rawPath = join(dir, baseName + '.' + ext)
           const rawPhoto = db.prepare('SELECT id, file_path FROM photos WHERE file_path = ?').get(rawPath) as { id: number; file_path: string } | undefined
           if (rawPhoto) {
@@ -57,24 +56,26 @@ export async function deletePhotos(db: Database.Database, ids: number[]): Promis
     }
   }
 
-  // 清理缩略图文件
+  // 批量清理缩略图文件：只读一次目录，然后批量匹配删除
   const thumbDir = getThumbnailDir()
-  for (const id of succeededIds) {
-    try {
-      await unlink(join(thumbDir, `${id}.webp`))
-    } catch { /* 缩略图不存在则忽略 */ }
-    try {
-      const files = await readdir(thumbDir)
-      const prefix = `${id}-`
-      for (const file of files) {
-        if (file.startsWith(prefix) && (file.endsWith('.webp') || file.endsWith('.jpg'))) {
-          try {
-            await unlink(join(thumbDir, file))
-          } catch { /* ignore single file unlink errors */ }
-        }
+  try {
+    const idSet = new Set(succeededIds)
+    const files = await readdir(thumbDir)
+    for (const file of files) {
+      // 匹配 {id}.webp 或 {id}-*.webp/.jpg
+      const dotIdx = file.indexOf('.')
+      if (dotIdx <= 0) continue
+      const namePart = file.substring(0, dotIdx)
+      const dashIdx = namePart.indexOf('-')
+      const idStr = dashIdx >= 0 ? namePart.substring(0, dashIdx) : namePart
+      const id = Number(idStr)
+      if (idSet.has(id) && (file.endsWith('.webp') || file.endsWith('.jpg'))) {
+        try {
+          await unlink(join(thumbDir, file))
+        } catch { /* ignore single file unlink errors */ }
       }
-    } catch { /* ignore directory read errors */ }
-  }
+    }
+  } catch { /* ignore directory read errors */ }
 
   // 只删除成功移入回收站的数据库记录
   if (succeededIds.length > 0) {

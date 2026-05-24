@@ -51,12 +51,16 @@ export interface PhotoRow {
   gps_lng: number | null
 }
 
+function escapeLike(value: string): string {
+  return value.replace(/[%_]/g, '\\$&')
+}
+
 export function createPhotoRepo(db: Database.Database) {
-  const RAW_FORMATS = ['raw', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'raf', 'dng', 'pef', 'srw', 'rw2'] as const
+  const RAW_FORMATS: string[] = ['raw', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'raf', 'dng', 'pef', 'srw', 'rw2']
   const RAW_FORMATS_SQL = RAW_FORMATS.map(format => `'${format}'`).join(', ')
+  const ALL_KNOWN_FORMATS = [...RAW_FORMATS, 'jpg', 'jpeg', 'png', 'webp', 'tiff', 'tif', 'bmp', 'gif']
   const stripKnownExtSql = (column: string) => (
-    RAW_FORMATS.concat(['jpg', 'jpeg', 'png', 'webp', 'tiff', 'tif', 'bmp', 'gif'])
-      .reduce((sql, ext) => `replace(${sql}, '.${ext}', '')`, `lower(${column})`)
+    ALL_KNOWN_FORMATS.reduce((sql, ext) => `replace(${sql}, '.${ext}', '')`, `lower(${column})`)
   )
 
   const HIDE_RAW_WITH_RENDERABLE_PAIR_CONDITION = `
@@ -76,6 +80,38 @@ export function createPhotoRepo(db: Database.Database) {
     INSERT INTO photos (file_path, file_name, file_size, file_hash, format, parent_folder, raw_pair_id, width, height, rating, color_label, is_rejected, created_at, modified_at, shot_at, camera_model, lens_model, iso, aperture, shutter_speed, gps_lat, gps_lng)
     VALUES (@file_path, @file_name, @file_size, @file_hash, @format, @parent_folder, @raw_pair_id, @width, @height, @rating, @color_label, @is_rejected, @created_at, @modified_at, @shot_at, @camera_model, @lens_model, @iso, @aperture, @shutter_speed, @gps_lat, @gps_lng)
   `)
+
+  const ALLOWED_FILTERS = new Set(['today', 'rated', 'rejected'])
+
+  function buildFilterConditions(options?: { filter?: string; search?: string; albumId?: number }): { conditions: string[]; params: unknown[] } {
+    const conditions: string[] = []
+    const params: unknown[] = []
+    const filter = options?.filter && ALLOWED_FILTERS.has(options.filter) ? options.filter : undefined
+    const search = options?.search?.trim()
+
+    if (search) {
+      conditions.push("file_name LIKE ? ESCAPE '\\'")
+      params.push(`%${escapeLike(search)}%`)
+    }
+
+    if (filter === 'today') {
+      conditions.push('created_at LIKE ? || \'%\'')
+      params.push(new Date().toISOString().split('T')[0])
+    } else if (filter === 'rated') {
+      conditions.push('rating > 0')
+    } else if (filter === 'rejected') {
+      conditions.push('is_rejected = 1')
+    } else if (options?.albumId) {
+      const album = db.prepare('SELECT folder_path FROM albums WHERE id = ?').get(options.albumId) as { folder_path: string } | undefined
+      if (album) {
+        conditions.push('parent_folder = ?')
+        params.push(album.folder_path)
+      }
+    }
+
+    conditions.push(HIDE_RAW_WITH_RENDERABLE_PAIR_CONDITION)
+    return { conditions, params }
+  }
 
   return {
     insert(photo: PhotoInsert): number {
@@ -112,105 +148,27 @@ export function createPhotoRepo(db: Database.Database) {
 
     getAll(options?: { orderBy?: string; limit?: number; offset?: number; filter?: string; albumId?: number; search?: string }): PhotoRow[] {
       const ALLOWED_FIELDS = new Set(['shot_at', 'created_at', 'file_name', 'file_size', 'rating', 'modified_at', 'camera_model', 'lens_model', 'iso'])
-      const ALLOWED_FILTERS = new Set(['today', 'rated', 'rejected'])
       const orderStr = options?.orderBy || 'shot_at DESC, created_at DESC'
       const [field, rawDir] = orderStr.split(/\s+/)
       const direction = rawDir?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
       const safeField = ALLOWED_FIELDS.has(field) ? field : 'shot_at'
       const limit = options?.limit || 100
       const offset = options?.offset || 0
-      const filter = options?.filter && ALLOWED_FILTERS.has(options.filter) ? options.filter : undefined
-      const search = options?.search?.trim()
 
-      const conditions: string[] = []
-      const params: unknown[] = []
-
-      if (search) {
-        conditions.push('file_name LIKE ?')
-        params.push(`%${search}%`)
-      }
-
-      if (filter === 'today') {
-        conditions.push('created_at LIKE ? || \'%\'')
-        params.push(new Date().toISOString().split('T')[0])
-      } else if (filter === 'rated') {
-        conditions.push('rating > 0')
-      } else if (filter === 'rejected') {
-        conditions.push('is_rejected = 1')
-      } else if (options?.albumId) {
-        const album = db.prepare('SELECT folder_path FROM albums WHERE id = ?').get(options.albumId) as { folder_path: string } | undefined
-        if (album) {
-          conditions.push('parent_folder = ?')
-          params.push(album.folder_path)
-        }
-      }
-
-      conditions.push(HIDE_RAW_WITH_RENDERABLE_PAIR_CONDITION)
+      const { conditions, params } = buildFilterConditions(options)
       const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
       params.push(limit, offset)
       return db.prepare(`SELECT p.* FROM photos p ${where} ORDER BY ${safeField} ${direction} LIMIT ? OFFSET ?`).all(...params) as PhotoRow[]
     },
 
     countFiltered(filter?: string, search?: string, albumId?: number): number {
-      const ALLOWED_FILTERS = new Set(['today', 'rated', 'rejected'])
-      const safeFilter = filter && ALLOWED_FILTERS.has(filter) ? filter : undefined
-      const safeSearch = search?.trim()
-      const conditions: string[] = []
-      const params: unknown[] = []
-
-      if (safeSearch) {
-        conditions.push('file_name LIKE ?')
-        params.push(`%${safeSearch}%`)
-      }
-
-      if (safeFilter === 'today') {
-        conditions.push('created_at LIKE ? || \'%\'')
-        params.push(new Date().toISOString().split('T')[0])
-      } else if (safeFilter === 'rated') {
-        conditions.push('rating > 0')
-      } else if (safeFilter === 'rejected') {
-        conditions.push('is_rejected = 1')
-      } else if (albumId) {
-        const album = db.prepare('SELECT folder_path FROM albums WHERE id = ?').get(albumId) as { folder_path: string } | undefined
-        if (album) {
-          conditions.push('parent_folder = ?')
-          params.push(album.folder_path)
-        }
-      }
-
-      conditions.push(HIDE_RAW_WITH_RENDERABLE_PAIR_CONDITION)
+      const { conditions, params } = buildFilterConditions({ filter, search, albumId })
       const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
       return (db.prepare(`SELECT COUNT(*) as count FROM photos p ${where}`).get(...params) as { count: number }).count
     },
 
     getIdsByFilter(filter?: string, search?: string, albumId?: number): number[] {
-      const ALLOWED_FILTERS = new Set(['today', 'rated', 'rejected'])
-      const safeFilter = filter && ALLOWED_FILTERS.has(filter) ? filter : undefined
-      const safeSearch = search?.trim()
-      const conditions: string[] = []
-      const params: unknown[] = []
-
-      if (safeSearch) {
-        conditions.push('file_name LIKE ?')
-        params.push(`%${safeSearch}%`)
-      }
-
-      if (safeFilter === 'today') {
-        conditions.push('created_at LIKE ? || \'%\'')
-        params.push(new Date().toISOString().split('T')[0])
-      } else if (safeFilter === 'rated') {
-        conditions.push('rating > 0')
-      } else if (safeFilter === 'rejected') {
-        conditions.push('is_rejected = 1')
-      } else if (albumId) {
-        const album = db.prepare('SELECT folder_path FROM albums WHERE id = ?').get(albumId) as { folder_path: string } | undefined
-        if (album) {
-          conditions.push('parent_folder = ?')
-          params.push(album.folder_path)
-        }
-      }
-
-      conditions.push(HIDE_RAW_WITH_RENDERABLE_PAIR_CONDITION)
+      const { conditions, params } = buildFilterConditions({ filter, search, albumId })
       const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
       return (db.prepare(`SELECT p.id FROM photos p ${where}`).all(...params) as { id: number }[]).map(r => r.id)
     },

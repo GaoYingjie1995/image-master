@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { createLocalFileUrl } from '@shared/local-protocol'
+import { formatFileSize as formatSize } from '@renderer/utils/format'
 
 const { t } = useI18n()
 
@@ -41,12 +42,6 @@ function handleKeep(photoId: number) {
 function handleDeleteOthers(group: { photos: { id: number; file_path: string }[] }) {
   const pathsToDelete = group.photos.filter(p => p.id !== keptId.value).map(p => p.file_path)
   emit('deleteOthers', pathsToDelete)
-}
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
 </script>
 

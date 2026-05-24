@@ -55,36 +55,29 @@ export function createImportSourceRepo(db: Database.Database) {
     },
 
     getAllWithStats(): ImportSourceWithStats[] {
-      const sources = db.prepare('SELECT * FROM import_sources ORDER BY imported_at DESC').all() as ImportSourceRow[]
-      return sources.map(source => {
-        // 查找顶层相册（parent_id IS NULL 且属于此 source）
-        const rootAlbum = db.prepare(`
-          SELECT id FROM albums WHERE import_source_id = ? AND parent_id IS NULL LIMIT 1
-        `).get(source.id) as { id: number } | undefined
-
-        let albumCount = 0
-        let photoCount = 0
-
-        if (rootAlbum) {
-          // 直接子目录数
-          albumCount = (db.prepare(`
-            SELECT COUNT(*) as count FROM albums WHERE parent_id = ?
-          `).get(rootAlbum.id) as { count: number }).count
-
-          // 递归统计所有子目录下的照片数
-          const childPaths = db.prepare(`
-            SELECT folder_path FROM albums WHERE import_source_id = ?
-          `).all(source.id) as { folder_path: string }[]
-          for (const row of childPaths) {
-            const count = (db.prepare(`
-              SELECT COUNT(*) as count FROM photos WHERE parent_folder = ?
-            `).get(row.folder_path) as { count: number }).count
-            photoCount += count
-          }
-        }
-
-        return { ...source, albumCount, photoCount }
-      })
+      // 单次查询获取所有导入源的照片数和子相册数
+      const rows = db.prepare(`
+        SELECT
+          s.id, s.folder_path, s.imported_at,
+          COALESCE(photo_stats.photo_count, 0) as photoCount,
+          COALESCE(album_stats.album_count, 0) as albumCount
+        FROM import_sources s
+        LEFT JOIN (
+          SELECT a_root.import_source_id, COUNT(a_child.id) as album_count
+          FROM albums a_root
+          LEFT JOIN albums a_child ON a_child.parent_id = a_root.id
+          WHERE a_root.parent_id IS NULL
+          GROUP BY a_root.import_source_id
+        ) album_stats ON album_stats.import_source_id = s.id
+        LEFT JOIN (
+          SELECT a.import_source_id, COUNT(p.id) as photo_count
+          FROM albums a
+          JOIN photos p ON p.parent_folder = a.folder_path
+          GROUP BY a.import_source_id
+        ) photo_stats ON photo_stats.import_source_id = s.id
+        ORDER BY s.imported_at DESC
+      `).all() as ImportSourceWithStats[]
+      return rows
     },
 
     delete(id: number): void {
@@ -111,11 +104,6 @@ export function createImportSourceRepo(db: Database.Database) {
         WHERE import_source_id = ?
         ORDER BY name
       `).all(sourceId) as { id: number; name: string; folder_path: string; parent_id: number | null }[]
-
-      console.log('[getAlbumTree] sourceId:', sourceId, 'albumCount:', albums.length)
-      for (const a of albums) {
-        console.log('  -', a.id, a.name, 'parent_id:', a.parent_id, 'path:', a.folder_path)
-      }
 
       const photoCounts = db.prepare(`
         SELECT parent_folder, COUNT(*) as count FROM photos
@@ -171,10 +159,6 @@ export function createImportSourceRepo(db: Database.Database) {
         }
       }
 
-      console.log('[getAlbumTree] roots:', roots.length)
-      for (const r of roots) {
-        console.log('  ROOT:', r.name, 'children:', r.children.length, r.children.map(c => c.name).join(', '))
-      }
       return roots
     },
 

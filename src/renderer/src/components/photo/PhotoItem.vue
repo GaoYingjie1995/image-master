@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import RatingStars from '../common/RatingStars.vue'
 import { createLocalFileUrl } from '@shared/local-protocol'
+import { COLOR_MAP } from '@renderer/utils/format'
 
 const thumbUrlCache = new Map<string, string>()
 
@@ -35,14 +36,6 @@ function handleDragStart(e: DragEvent) {
     : [props.photo.id]
   e.dataTransfer?.setData('application/photo-ids', JSON.stringify(ids))
   e.dataTransfer!.effectAllowed = 'copy'
-}
-
-const COLOR_MAP: Record<string, string> = {
-  red: '#ef4444',
-  yellow: '#eab308',
-  green: '#22c55e',
-  blue: '#3b82f6',
-  purple: '#a855f7'
 }
 
 const thumbUrl = ref<string>('')

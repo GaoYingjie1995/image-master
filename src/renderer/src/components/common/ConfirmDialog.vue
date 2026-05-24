@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   visible: boolean
@@ -36,12 +39,12 @@ onUnmounted(() => { window.removeEventListener('keydown', handleKeydown) })
           <div class="flex justify-end gap-2">
             <button @click="$emit('cancel')"
                     class="px-4 py-1.5 text-xs rounded-lg bg-bg-tertiary text-text-secondary hover:bg-bg-hover border border-white/5 transition-colors">
-              {{ cancelText || '取消' }}
+              {{ cancelText || t('common.cancel') }}
             </button>
             <button @click="$emit('confirm')"
                     class="px-4 py-1.5 text-xs rounded-lg transition-colors"
                     :class="danger ? 'bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/20' : 'bg-accent/15 text-accent hover:bg-accent/25 border border-accent/20'">
-              {{ confirmText || '确认' }}
+              {{ confirmText || t('common.confirm') }}
             </button>
           </div>
         </div>

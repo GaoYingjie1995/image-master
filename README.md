@@ -25,8 +25,9 @@
 
 ### 相册管理
 
-- **普通相册** — 基于文件系统目录，照片移入相册文件夹，支持拖放添加
+- **普通相册** — 基于文件系统目录的树状相册，自动从导入目录结构创建，支持折叠/展开和自定义封面
 - **智能相册** — 基于规则的动态相册（AND/OR 逻辑），支持按相机、镜头、评分、格式、ISO 等条件筛选
+- **导入文件夹管理** — 集中管理所有导入的文件夹来源，支持刷新、移除子文件夹、重新导入
 
 ### 清理工具
 
@@ -111,7 +112,7 @@ pnpm typecheck    # TypeScript 类型检查
 src/
 ├── main/                  # Electron 主进程
 │   ├── db/                #   数据库层（better-sqlite3，Repository 模式）
-│   ├── ipc/               #   IPC 处理器（photos, albums, cleanup, settings）
+│   ├── ipc/               #   IPC 处理器（photos, albums, cleanup, settings, import-sources）
 │   ├── services/          #   业务逻辑（scanner, thumbnail, hasher 等）
 │   └── utils/             #   工具函数
 ├── preload/               # 预加载脚本（contextBridge 暴露 electronAPI）
@@ -165,11 +166,14 @@ src/
 
 SQLite（better-sqlite3），WAL 模式，主要表结构：
 
-- `photos` — 照片元数据（22 列，含 EXIF、GPS、评分、标签）
-- `albums` — 相册（映射到文件系统目录）
-- `album_photos` — 相册-照片关联表
+- `photos` — 照片元数据（23 列，含 EXIF、GPS、评分、标签、`parent_folder`）
+- `albums` — 相册，支持树状层级（`parent_id` 自引用），映射到文件系统目录
 - `smart_albums` — 智能相册规则（JSON 存储）
 - `settings` — 应用设置（键值对）
+- `import_sources` — 导入文件夹来源管理
+- `import_removed_folders` — 已移除的导入子文件夹记录
+
+照片与相册通过 `photos.parent_folder` 与 `albums.folder_path` 路径匹配关联，无需额外关联表。
 
 ### 安全机制
 

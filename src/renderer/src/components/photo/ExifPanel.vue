@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Photo } from '../../stores/photos'
+import { formatFileSize } from '@renderer/utils/format'
 
 const { t } = useI18n()
 
@@ -9,18 +10,6 @@ const props = defineProps<{
   photo: Photo | null
   visible: boolean
 }>()
-
-const exifData = ref<Record<string, unknown> | null>(null)
-
-// Photo object already contains all EXIF fields from the database
-// No separate EXIF fetch needed
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-  return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
-}
 
 function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '-'

@@ -41,7 +41,7 @@ src/
 
 主进程通过 `ipcMain.handle` 注册处理器，preload 脚本通过 `contextBridge.exposeInMainWorld('electronAPI', {...})` 暴露 API。渲染进程通过 `window.electronAPI` 调用。
 
-IPC 通道命名约定：`模块:操作`，如 `photos:getAll`、`albums:create`、`cleanup:detectDuplicates`。
+IPC 通道命名约定：`模块:操作`，如 `photos:getAll`、`albums:create`、`cleanup:detectDuplicates`、`importSources:add`。
 
 新增 IPC 端点需要：
 1. 在 `src/main/ipc/` 中添加 `ipcMain.handle`
@@ -50,9 +50,9 @@ IPC 通道命名约定：`模块:操作`，如 `photos:getAll`、`albums:create`
 
 ### 数据库层
 
-`createDatabase()` 返回 better-sqlite3 实例（默认 `:memory:`），使用 WAL 模式和外键约束。Repository 模式：`photo-repo.ts`、`album-repo.ts`、`settings-repo.ts` 各自导出 `createXxxRepo(db)` 工厂函数。
+`createDatabase()` 返回 better-sqlite3 实例（默认 `:memory:`），使用 WAL 模式和外键约束。Repository 模式：`photo-repo.ts`、`album-repo.ts`、`settings-repo.ts`、`import-source-repo.ts` 各自导出 `createXxxRepo(db)` 工厂函数。
 
-Schema 定义在 `src/main/db/database.ts` 的 `SCHEMA` 常量中，表包括：`photos`、`albums`、`album_photos`、`smart_albums`、`settings`。
+Schema 定义在 `src/main/db/database.ts` 的 `SCHEMA` 常量中，表包括：`photos`、`albums`、`smart_albums`、`settings`、`import_sources`、`import_removed_folders`。照片与相册通过 `photos.parent_folder` 与 `albums.folder_path` 路径匹配关联（无需关联表）。相册支持树状层级（`parent_id` 自引用）。
 
 ### 路径别名
 

@@ -12,6 +12,7 @@ import PhotoPreview from '../components/photo/PhotoPreview.vue'
 import BatchActionBar from '../components/common/BatchActionBar.vue'
 import ContextMenu from '../components/common/ContextMenu.vue'
 import { useToastStore } from '../stores/toast'
+import { COLOR_MAP } from '@renderer/utils/format'
 import type { MenuItem } from '../components/common/ContextMenu.vue'
 import type { Photo } from '../stores/photos'
 import type { Album } from '../stores/albums'
@@ -230,10 +231,6 @@ async function contextDelete() {
   if (result.success > 0) {
     photosStore.photos = photosStore.photos.filter(p => p.id !== contextPhoto.value?.id)
   }
-}
-
-const COLOR_MAP: Record<string, string> = {
-  red: '#ef4444', yellow: '#eab308', green: '#22c55e', blue: '#3b82f6', purple: '#a855f7'
 }
 
 const contextMenuItems = computed<MenuItem[]>(() => {

@@ -1,4 +1,13 @@
 export default {
+  common: {
+    confirm: '确认',
+    cancel: '取消',
+    importPhotos: '导入照片',
+    settings: '设置',
+    minimize: '最小化',
+    maximize: '最大化',
+    close: '关闭'
+  },
   app: {
     name: 'Image Master',
     version: 'v0.1.0'
@@ -174,6 +183,8 @@ export default {
   },
   histogram: {
     title: '直方图分析',
+    noPhotos: '暂无照片，请先导入',
+    rgbTitle: 'RGB 直方图',
     red: '红',
     green: '绿',
     blue: '蓝',

@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3'
+import { isRawFormat } from '../utils/file-types'
 
 interface Condition {
   field: string
@@ -32,7 +33,6 @@ const FIELD_TYPES: Record<string, 'number' | 'string' | 'boolean'> = {
 const ALLOWED_OPS = new Set([
   'equals', 'not_equals', 'gte', 'lte', 'contains', 'in', 'this_month', 'this_year'
 ])
-const RAW_FORMATS = new Set(['raw', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'raf', 'dng', 'pef', 'srw', 'rw2'])
 
 export function validateRules(rulesStr: string): { valid: boolean; error?: string } {
   let rules: SmartAlbumRules
@@ -148,7 +148,7 @@ export function getSmartAlbumPhotos(db: Database.Database, albumId: number): Rec
 
   for (const photo of photos) {
     const format = String(photo.format || '').toLowerCase()
-    if (RAW_FORMATS.has(format)) continue
+    if (isRawFormat(format)) continue
     const filePath = String(photo.file_path || '')
     const fileName = String(photo.file_name || '')
     const dir = filePath.slice(0, Math.max(0, filePath.length - fileName.length)).toLowerCase()
@@ -158,7 +158,7 @@ export function getSmartAlbumPhotos(db: Database.Database, albumId: number): Rec
 
   return photos.filter(photo => {
     const format = String(photo.format || '').toLowerCase()
-    if (RAW_FORMATS.has(format)) {
+    if (isRawFormat(format)) {
       const filePath = String(photo.file_path || '')
       const fileName = String(photo.file_name || '')
       const dir = filePath.slice(0, Math.max(0, filePath.length - fileName.length)).toLowerCase()

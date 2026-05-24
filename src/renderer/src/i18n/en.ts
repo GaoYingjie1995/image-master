@@ -1,4 +1,13 @@
 export default {
+  common: {
+    confirm: 'Confirm',
+    cancel: 'Cancel',
+    importPhotos: 'Import Photos',
+    settings: 'Settings',
+    minimize: 'Minimize',
+    maximize: 'Maximize',
+    close: 'Close'
+  },
   app: {
     name: 'Image Master',
     version: 'v0.1.0'
@@ -174,6 +183,8 @@ export default {
   },
   histogram: {
     title: 'Histogram Analysis',
+    noPhotos: 'No photos found. Please import some first.',
+    rgbTitle: 'RGB Histogram',
     red: 'Red',
     green: 'Green',
     blue: 'Blue',
