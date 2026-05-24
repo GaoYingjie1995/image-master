@@ -90,48 +90,50 @@ export function registerPhotoIpc(db: Database.Database) {
       })
     }
 
-    const scanResult = await scanFolder(
-      (data) => repo.insert(data),
-      (path) => repo.getByFilePath(path),
-      {
-        folderPath,
-        onProgress: (current, total) => {
-          win.webContents.send('photos:scanProgress', { current, total })
+    try {
+      const scanResult = await scanFolder(
+        (data) => repo.insert(data),
+        (path) => repo.getByFilePath(path),
+        {
+          folderPath,
+          onProgress: (current, total) => {
+            win.webContents.send('photos:scanProgress', { current, total })
+          }
+        }
+      )
+
+      // 根据目录结构自动创建相册树
+      const albumIdMap = new Map<string, number>()
+      for (const folder of scanResult.folders) {
+        const existing = albumRepo.getByFolderPath(folder.path)
+        if (existing) {
+          const parentId = folder.parentPath ? albumIdMap.get(folder.parentPath) ?? null : null
+          db.prepare('UPDATE albums SET parent_id = ?, import_source_id = ? WHERE id = ?').run(parentId, sourceId, existing.id)
+          albumIdMap.set(folder.path, existing.id)
+          continue
+        }
+
+        const parentId = folder.parentPath ? albumIdMap.get(folder.parentPath) ?? null : null
+        const albumId = albumRepo.create({
+          name: folder.name,
+          folder_path: folder.path,
+          parent_id: parentId,
+          created_at: new Date().toISOString()
+        })
+        db.prepare('UPDATE albums SET import_source_id = ? WHERE id = ?').run(sourceId, albumId)
+        albumIdMap.set(folder.path, albumId)
+
+        const firstPhoto = db.prepare('SELECT id FROM photos WHERE parent_folder = ? LIMIT 1').get(folder.path) as { id: number } | undefined
+        if (firstPhoto) {
+          albumRepo.setCover(albumId, firstPhoto.id)
         }
       }
-    )
 
-    // 根据目录结构自动创建相册树
-    const albumIdMap = new Map<string, number>()
-    for (const folder of scanResult.folders) {
-      const existing = albumRepo.getByFolderPath(folder.path)
-      if (existing) {
-        // 已存在的相册也需要更新 parent_id 和 import_source_id
-        const parentId = folder.parentPath ? albumIdMap.get(folder.parentPath) ?? null : null
-        db.prepare('UPDATE albums SET parent_id = ?, import_source_id = ? WHERE id = ?').run(parentId, sourceId, existing.id)
-        albumIdMap.set(folder.path, existing.id)
-        continue
-      }
-
-      const parentId = folder.parentPath ? albumIdMap.get(folder.parentPath) ?? null : null
-      const albumId = albumRepo.create({
-        name: folder.name,
-        folder_path: folder.path,
-        parent_id: parentId,
-        created_at: new Date().toISOString()
-      })
-      // 更新 import_source_id
-      db.prepare('UPDATE albums SET import_source_id = ? WHERE id = ?').run(sourceId, albumId)
-      albumIdMap.set(folder.path, albumId)
-
-      // 自动将文件夹中的第一张照片设为封面
-      const firstPhoto = db.prepare('SELECT id FROM photos WHERE parent_folder = ? LIMIT 1').get(folder.path) as { id: number } | undefined
-      if (firstPhoto) {
-        albumRepo.setCover(albumId, firstPhoto.id)
-      }
+      return { folderPath, count: scanResult.count }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '导入失败'
+      return { folderPath, count: 0, error: message }
     }
-
-    return { folderPath, count: scanResult.count }
   })
 
   ipcMain.handle('photos:getThumbnail', async (_event, photoId: number) => {

@@ -4,11 +4,12 @@ import { usePhotosStore } from '../stores/photos'
 export function useBatchOperations() {
   const selection = useSelectionStore()
   const photosStore = usePhotosStore()
+  const api = window.electronAPI!
 
   async function batchRate(rating: number) {
     const ids = Array.from(selection.selectedIds)
     if (ids.length === 0) return
-    await window.electronAPI.photos.batchUpdateRating(ids, rating)
+    await api.photos.batchUpdateRating(ids, rating)
     for (const photo of photosStore.photos) {
       if (selection.selectedIds.has(photo.id)) {
         photo.rating = rating
@@ -19,7 +20,7 @@ export function useBatchOperations() {
   async function batchColorLabel(label: string | null) {
     const ids = Array.from(selection.selectedIds)
     for (const id of ids) {
-      await window.electronAPI.photos.updateColorLabel(id, label)
+      await api.photos.updateColorLabel(id, label)
     }
     for (const photo of photosStore.photos) {
       if (selection.selectedIds.has(photo.id)) {
@@ -31,7 +32,7 @@ export function useBatchOperations() {
   async function batchReject() {
     const ids = Array.from(selection.selectedIds)
     for (const id of ids) {
-      await window.electronAPI.photos.updateRejected(id, true)
+      await api.photos.updateRejected(id, true)
     }
     for (const photo of photosStore.photos) {
       if (selection.selectedIds.has(photo.id)) {
@@ -43,7 +44,7 @@ export function useBatchOperations() {
   async function batchDelete() {
     const ids = Array.from(selection.selectedIds)
     if (ids.length === 0) return
-    const result = await window.electronAPI.photos.batchDelete(ids)
+    const result = await api.photos.batchDelete(ids)
     if (result.success > 0) {
       photosStore.photos = photosStore.photos.filter(p => !selection.selectedIds.has(p.id))
       selection.clear()

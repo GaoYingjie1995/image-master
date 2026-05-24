@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ClipboardCopy, FolderOpen, Star, X, Ban, Trash2, Circle, Images } from 'lucide-vue-next'
 import { COLOR_MAP } from '@renderer/utils/format'
-import type { MenuItem } from '../components/common/ContextMenu.vue'
+import type { MenuItem } from '@renderer/types/menu'
 import type { Photo } from '../stores/photos'
 
 export function usePhotoContextMenu(options: {

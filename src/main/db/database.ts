@@ -99,7 +99,14 @@ export function createDatabase(dbPath?: string): Database.Database {
     'ALTER TABLE albums ADD COLUMN is_collapsed INTEGER DEFAULT 0',
     'ALTER TABLE albums ADD COLUMN import_source_id INTEGER REFERENCES import_sources(id) ON DELETE SET NULL',
   ]) {
-    try { db.exec(stmt) } catch { /* 列已存在则忽略 */ }
+    try {
+      db.exec(stmt)
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      if (!msg.includes('duplicate column name')) {
+        console.error('[db] 迁移失败:', msg, '\n  SQL:', stmt)
+      }
+    }
   }
 
   db.exec(SCHEMA)
@@ -155,7 +162,9 @@ export function createDatabase(dbPath?: string): Database.Database {
       })
       migrate()
     }
-  } catch { /* 迁移失败不阻塞启动 */ }
+  } catch (error) {
+    console.error('[db] parent_folder 迁移失败:', error instanceof Error ? error.message : error)
+  }
 
   // 迁移：为现有数据创建 import_sources 记录
   try {
@@ -190,7 +199,9 @@ export function createDatabase(dbPath?: string): Database.Database {
         migrate()
       }
     }
-  } catch { /* 迁移失败不阻塞启动 */ }
+  } catch (error) {
+    console.error('[db] import_sources 迁移失败:', error instanceof Error ? error.message : error)
+  }
 
   return db
 }

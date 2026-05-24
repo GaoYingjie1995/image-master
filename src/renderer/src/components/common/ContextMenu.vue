@@ -1,15 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, type Component } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import type { MenuItem } from '@renderer/types/menu'
 
-export interface MenuItem {
-  label: string
-  icon?: string | Component
-  iconColor?: string
-  action?: () => void
-  divider?: boolean
-  disabled?: boolean
-  children?: MenuItem[]
-}
+export type { MenuItem }
 
 const props = defineProps<{
   items: MenuItem[]

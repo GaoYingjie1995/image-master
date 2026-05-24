@@ -20,6 +20,6 @@ async function initSettings() {
   }
 }
 
-initSettings()
-
-createApp(App).use(createPinia()).use(router).use(i18n).mount('#app')
+initSettings().finally(() => {
+  createApp(App).use(createPinia()).use(router).use(i18n).mount('#app')
+})

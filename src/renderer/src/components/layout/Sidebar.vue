@@ -7,6 +7,7 @@ import { useAlbumsStore, type Album } from '../../stores/albums'
 import { Image, Star, Clock, XCircle, Copy, Trash2, FileEdit, Download, Map as MapIcon, BarChart3, Columns, FolderInput } from 'lucide-vue-next'
 import AlbumDialog from '../album/AlbumDialog.vue'
 import AlbumTreeItem from '../album/AlbumTreeItem.vue'
+import SidebarNavGroup from './SidebarNavGroup.vue'
 import SmartAlbumDialog from '../album/SmartAlbumDialog.vue'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
 import { createLocalFileUrl } from '@shared/local-protocol'
@@ -98,21 +99,6 @@ const analysisItems = [
 const manageItems = [
   { icon: FolderInput, labelKey: 'nav.importSources', route: '/imports' }
 ]
-
-function isActive(path: string) {
-  return route.path === path
-}
-
-function navigate(path: string) {
-  router.push(path)
-}
-
-function handleNavKeydown(e: KeyboardEvent, path: string) {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault()
-    navigate(path)
-  }
-}
 
 async function handleCreateAlbum(name: string) {
   if (!albumTree.value.length) {
@@ -227,72 +213,13 @@ async function confirmDeleteAlbum() {
 
 <template>
   <aside class="w-[220px] bg-bg-primary border-r border-white/5 flex flex-col overflow-y-auto py-3" role="navigation" aria-label="主导航">
-    <div class="px-3 mb-2">
-      <div class="text-[10px] font-medium text-text-muted uppercase tracking-[1.5px] px-3 pb-1.5" role="heading" aria-level="2">{{ $t('nav.browse') }}</div>
-      <div v-for="item in navItems" :key="item.route"
-           @click="navigate(item.route)"
-           @keydown="handleNavKeydown($event, item.route)"
-           tabindex="0"
-           role="link"
-           :aria-current="isActive(item.route) ? 'page' : undefined"
-           class="flex items-center gap-2.5 py-[7px] px-3 rounded-md cursor-pointer transition-colors text-[13px] relative outline-none focus:ring-1 focus:ring-accent/50"
-           :class="isActive(item.route) ? 'bg-accent-dim text-accent' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'">
-        <component :is="item.icon" :size="16" class="shrink-0" aria-hidden="true" />
-        <span>{{ $t(item.labelKey) }}</span>
-      </div>
-    </div>
-
+    <SidebarNavGroup :title="$t('nav.browse')" :items="navItems" />
     <div class="h-px bg-white/5 mx-3 my-2" role="separator"></div>
-
-    <div class="px-3 mb-2">
-      <div class="text-[10px] font-medium text-text-muted uppercase tracking-[1.5px] px-3 pb-1.5" role="heading" aria-level="2">{{ $t('nav.tools') }}</div>
-      <div v-for="item in toolItems" :key="item.route"
-           @click="navigate(item.route)"
-           @keydown="handleNavKeydown($event, item.route)"
-           tabindex="0"
-           role="link"
-           :aria-current="isActive(item.route) ? 'page' : undefined"
-           class="flex items-center gap-2.5 py-[7px] px-3 rounded-md cursor-pointer transition-colors text-[13px] outline-none focus:ring-1 focus:ring-accent/50"
-           :class="isActive(item.route) ? 'bg-accent-dim text-accent' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'">
-        <component :is="item.icon" :size="16" class="shrink-0" aria-hidden="true" />
-        <span>{{ $t(item.labelKey) }}</span>
-      </div>
-    </div>
-
+    <SidebarNavGroup :title="$t('nav.tools')" :items="toolItems" />
     <div class="h-px bg-white/5 mx-3 my-2" role="separator"></div>
-
-    <div class="px-3 mb-2">
-      <div class="text-[10px] font-medium text-text-muted uppercase tracking-[1.5px] px-3 pb-1.5" role="heading" aria-level="2">{{ $t('nav.analysis') }}</div>
-      <div v-for="item in analysisItems" :key="item.route"
-           @click="navigate(item.route)"
-           @keydown="handleNavKeydown($event, item.route)"
-           tabindex="0"
-           role="link"
-           :aria-current="isActive(item.route) ? 'page' : undefined"
-           class="flex items-center gap-2.5 py-[7px] px-3 rounded-md cursor-pointer transition-colors text-[13px] outline-none focus:ring-1 focus:ring-accent/50"
-           :class="isActive(item.route) ? 'bg-accent-dim text-accent' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'">
-        <component :is="item.icon" :size="16" class="shrink-0" aria-hidden="true" />
-        <span>{{ $t(item.labelKey) }}</span>
-      </div>
-    </div>
-
+    <SidebarNavGroup :title="$t('nav.analysis')" :items="analysisItems" />
     <div class="h-px bg-white/5 mx-3 my-2" role="separator"></div>
-
-    <div class="px-3 mb-2">
-      <div class="text-[10px] font-medium text-text-muted uppercase tracking-[1.5px] px-3 pb-1.5" role="heading" aria-level="2">{{ $t('nav.manage') }}</div>
-      <div v-for="item in manageItems" :key="item.route"
-           @click="navigate(item.route)"
-           @keydown="handleNavKeydown($event, item.route)"
-           tabindex="0"
-           role="link"
-           :aria-current="isActive(item.route) ? 'page' : undefined"
-           class="flex items-center gap-2.5 py-[7px] px-3 rounded-md cursor-pointer transition-colors text-[13px] outline-none focus:ring-1 focus:ring-accent/50"
-           :class="isActive(item.route) ? 'bg-accent-dim text-accent' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'">
-        <component :is="item.icon" :size="16" class="shrink-0" aria-hidden="true" />
-        <span>{{ $t(item.labelKey) }}</span>
-      </div>
-    </div>
-
+    <SidebarNavGroup :title="$t('nav.manage')" :items="manageItems" />
     <div class="h-px bg-white/5 mx-3 my-2" role="separator"></div>
 
     <div class="px-3 flex-1">

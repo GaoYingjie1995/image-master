@@ -30,7 +30,7 @@ const CONTAINER_PADDING_X = 32
 const HEADER_HEIGHT = 24
 const HEADER_MARGIN_BOTTOM = 10
 const GROUP_MARGIN_BOTTOM = 16
-const OVERSCAN_PX = 1200
+const OVERSCAN_PX = 600
 
 const contentWidth = computed(() => Math.max(0, containerWidth.value - CONTAINER_PADDING_X))
 const columns = computed(() => {
