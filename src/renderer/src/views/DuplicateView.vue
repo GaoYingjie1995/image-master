@@ -4,8 +4,12 @@ import { useI18n } from 'vue-i18n'
 import DuplicateGroup from '../components/cleanup/DuplicateGroup.vue'
 import ConfirmDialog from '../components/common/ConfirmDialog.vue'
 import { useToastStore } from '../stores/toast'
+import { usePhotosStore } from '../stores/photos'
+import { useAlbumsStore } from '../stores/albums'
 
 const toast = useToastStore()
+const photosStore = usePhotosStore()
+const albumsStore = useAlbumsStore()
 const { t } = useI18n()
 
 const folderPath = ref('')
@@ -111,6 +115,8 @@ async function confirmDelete() {
           ...g,
           photos: g.photos.filter(p => p.file_path !== filePath)
         })).filter(g => g.photos.length > 1)
+        photosStore.refresh()
+        albumsStore.fetchTree()
       } else {
         toast.error(t('duplicates.deleteFailed'))
       }
@@ -143,6 +149,8 @@ async function confirmDeleteOthers() {
         ...g,
         photos: g.photos.filter(p => !deletedSet.has(p.file_path))
       })).filter(g => g.photos.length > 1)
+      photosStore.refresh()
+      albumsStore.fetchTree()
     }
     if (result.failed > 0) {
       toast.error(t('duplicates.deleteFailCount', { count: result.failed }))
@@ -210,6 +218,8 @@ async function confirmBatchDelete() {
         photos: g.photos.filter(p => !deletedSet.has(p.file_path))
       })).filter(g => g.photos.length > 1)
       batchSelections.value = {}
+      photosStore.refresh()
+      albumsStore.fetchTree()
       toast.success(t('duplicates.batchResult', { success: result.success, failed: result.failed }))
     } else if (result.failed > 0) {
       toast.error(t('duplicates.deleteFailCount', { count: result.failed }))

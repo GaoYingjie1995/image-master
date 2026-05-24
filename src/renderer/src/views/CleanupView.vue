@@ -4,8 +4,12 @@ import { useI18n } from 'vue-i18n'
 import RawPairList from '../components/cleanup/RawPairList.vue'
 import ConfirmDialog from '../components/common/ConfirmDialog.vue'
 import { useToastStore } from '../stores/toast'
+import { usePhotosStore } from '../stores/photos'
+import { useAlbumsStore } from '../stores/albums'
 
 const toast = useToastStore()
+const photosStore = usePhotosStore()
+const albumsStore = useAlbumsStore()
 const { t } = useI18n()
 
 const folderPath = ref('')
@@ -64,6 +68,10 @@ async function handleConfirm() {
     toast.error(t('cleanup.deleteFailed', { count: result.failed }))
   }
   orphanedRaws.value = orphanedRaws.value.filter(r => !paths.includes(r.file_path))
+  if (result.success > 0) {
+    photosStore.refresh()
+    albumsStore.fetchTree()
+  }
 }
 </script>
 

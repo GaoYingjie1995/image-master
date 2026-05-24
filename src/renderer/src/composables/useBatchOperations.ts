@@ -1,9 +1,11 @@
 import { useSelectionStore } from '../stores/selection'
 import { usePhotosStore } from '../stores/photos'
+import { useAlbumsStore } from '../stores/albums'
 
 export function useBatchOperations() {
   const selection = useSelectionStore()
   const photosStore = usePhotosStore()
+  const albumsStore = useAlbumsStore()
   const api = window.electronAPI!
 
   async function batchRate(rating: number) {
@@ -47,7 +49,9 @@ export function useBatchOperations() {
     const result = await api.photos.batchDelete(ids)
     if (result.success > 0) {
       photosStore.photos = photosStore.photos.filter(p => !selection.selectedIds.has(p.id))
+      photosStore.totalCount -= result.success
       selection.clear()
+      albumsStore.fetchTree()
     }
   }
 

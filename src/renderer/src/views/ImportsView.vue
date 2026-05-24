@@ -2,11 +2,19 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '../stores/toast'
+import { usePhotosStore } from '../stores/photos'
+import { useAlbumsStore } from '../stores/albums'
 import ConfirmDialog from '../components/common/ConfirmDialog.vue'
 import { FolderInput, Trash2, FolderPlus, ChevronRight, Folder, RefreshCw, RotateCcw } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const toast = useToastStore()
+const photosStore = usePhotosStore()
+const albumsStore = useAlbumsStore()
+
+async function refreshGlobalData() {
+  await Promise.all([albumsStore.fetchTree(), photosStore.refresh()])
+}
 
 interface ImportSource {
   id: number
@@ -86,7 +94,6 @@ async function toggleExpand(source: ImportSource) {
   // 加载子目录
   if (!sourceChildren.value.has(id) && window.electronAPI) {
     const tree = await window.electronAPI.importSources.getAlbumTree(id) as AlbumTreeNode[]
-    console.log('[ImportsView] tree result:', tree.length, tree.map(n => ({ name: n.name, childCount: n.children?.length })))
     sourceChildren.value.set(id, tree)
   }
 
@@ -107,6 +114,7 @@ async function handleAdd() {
         toast.success(t('imports.addSuccess', { count: result.count }))
       }
       await loadSources()
+      await refreshGlobalData()
     }
   } catch {
     toast.error(t('toast.importFailed'))
@@ -131,6 +139,7 @@ function confirmRemoveSource(source: ImportSource) {
       sourceChildren.value.delete(source.id)
       refreshResult.value.delete(source.id)
       await loadSources()
+      await refreshGlobalData()
     }
   }
   showDeleteConfirm.value = true
@@ -154,6 +163,7 @@ function confirmRemoveChild(sourceId: number, node: AlbumTreeNode) {
       // 清除刷新结果
       refreshResult.value.delete(sourceId)
       await loadSources()
+      await refreshGlobalData()
     }
   }
   showDeleteConfirm.value = true
@@ -188,6 +198,7 @@ async function handleReimport(sourceId: number, folderPath: string) {
     const tree = await window.electronAPI.importSources.getAlbumTree(sourceId) as AlbumTreeNode[]
     sourceChildren.value.set(sourceId, tree)
     await loadSources()
+    await refreshGlobalData()
   } catch {
     toast.error(t('toast.importFailed'))
   } finally {

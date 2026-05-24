@@ -55,6 +55,8 @@ async function singleDelete(id: number) {
   const result = await window.electronAPI.photos.batchDelete([id])
   if (result.success > 0) {
     photosStore.photos = photosStore.photos.filter(p => p.id !== id)
+    photosStore.totalCount -= result.success
+    albumsStore.fetchTree()
   }
 }
 async function setAsCover(photoId: number) {

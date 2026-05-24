@@ -4,10 +4,12 @@ import { useI18n } from 'vue-i18n'
 import { usePhotosStore } from '../stores/photos'
 import { useSelectionStore } from '../stores/selection'
 import { useToastStore } from '../stores/toast'
+import { useAlbumsStore } from '../stores/albums'
 
 const { t } = useI18n()
 
 const photosStore = usePhotosStore()
+const albumsStore = useAlbumsStore()
 const selection = useSelectionStore()
 const toast = useToastStore()
 
@@ -91,6 +93,7 @@ async function handleRename() {
     toast.success(t('toast.renameSuccess', { count: results.value.length }))
     step.value = 'done'
     await photosStore.refresh()
+    await albumsStore.fetchTree()
   } catch (err) {
     toast.error(t('toast.renameFailed'))
   } finally {
