@@ -107,7 +107,6 @@ const bindingLabels = computed<Record<keyof KeyBindings, string>>(() => ({
   rate4: t('settings.keyBindingsList.rate4'),
   rate5: t('settings.keyBindingsList.rate5'),
   reject: t('settings.keyBindingsList.reject'),
-  histogram: t('settings.keyBindingsList.histogram'),
   delete: t('settings.keyBindingsList.delete'),
   export: t('settings.keyBindingsList.export')
 }))

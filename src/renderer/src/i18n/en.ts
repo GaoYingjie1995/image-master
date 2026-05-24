@@ -25,8 +25,6 @@ export default {
     batchExport: 'Batch Export',
     analysis: 'Analysis',
     map: 'Map',
-    histogram: 'Histogram',
-    compare: 'Compare',
     smartAlbums: 'Smart Albums',
     albums: 'Albums',
     newAlbum: '+ New Album',
@@ -75,7 +73,6 @@ export default {
       rate4: 'Rate 4 Stars',
       rate5: 'Rate 5 Stars',
       reject: 'Reject',
-      histogram: 'Histogram',
       delete: 'Delete',
       export: 'Export'
     },
@@ -182,19 +179,6 @@ export default {
     dateTo: 'To',
     filter: 'Filter'
   },
-  histogram: {
-    title: 'Histogram Analysis',
-    noPhotos: 'No photos found. Please import some first.',
-    rgbTitle: 'RGB Histogram',
-    red: 'Red',
-    green: 'Green',
-    blue: 'Blue',
-    luminance: 'Luminance',
-    shadowClip: 'Underexposed {value}%',
-    highlightClip: 'Overexposed {value}%',
-    shadowNormal: 'Shadows OK',
-    highlightNormal: 'Highlights OK'
-  },
   batchAction: {
     selected: '{count} selected',
     rate: 'Rate',
@@ -293,7 +277,6 @@ export default {
     prev: 'Previous',
     next: 'Next',
     close: 'Close',
-    histogram: 'Histogram',
     zoomIn: 'Zoom In',
     zoomOut: 'Zoom Out',
     fitWindow: 'Fit Window',
@@ -308,13 +291,6 @@ export default {
     previewTitle: 'Rename Preview ({count})',
     doneTitle: 'Rename Complete ({count})',
     continueRename: 'Continue Renaming'
-  },
-  compare: {
-    title: 'Photo Comparison',
-    selectFirst: 'Select first photo',
-    selectSecond: 'Select second photo',
-    noSelection: 'Select two photos in the grid to compare',
-    ready: 'Two photos selected, click compare'
   },
   exif: {
     title: 'Photo Info',

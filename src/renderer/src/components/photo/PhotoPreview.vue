@@ -7,7 +7,6 @@ import ExifPanel from './ExifPanel.vue'
 import { createLocalFileUrl } from '@shared/local-protocol'
 
 const { t } = useI18n()
-import Histogram from './Histogram.vue'
 import type { Photo } from '../../stores/photos'
 
 const props = defineProps<{
@@ -25,7 +24,6 @@ const emit = defineEmits<{
 }>()
 
 const imageUrl = ref('')
-const showHistogram = ref(false)
 const showExif = ref(false)
 const zoom = ref(1) // 1 = fit, >1 = zoomed
 const panX = ref(0)
@@ -114,8 +112,7 @@ const { getBindings } = useKeyboard({
   rate3: () => props.visible && emit('rate', 3),
   rate4: () => props.visible && emit('rate', 4),
   rate5: () => props.visible && emit('rate', 5),
-  reject: () => props.visible && emit('reject'),
-  histogram: () => props.visible && (showHistogram.value = !showHistogram.value)
+  reject: () => props.visible && emit('reject')
 })
 
 // 非配置快捷键：颜色标签、缩放、清除评分
@@ -169,17 +166,6 @@ onUnmounted(() => {
                 @click="emit('next')"
                 :aria-label="$t('preview.next')">&#8250;</button>
 
-        <!-- 直方图面板 -->
-        <Transition name="fade">
-          <div v-if="showHistogram" class="absolute top-4 right-4 w-64 bg-bg-primary/90 backdrop-blur-sm rounded-lg p-3 border border-white/5">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs text-text-muted">{{ $t('preview.histogram') }} (H)</span>
-              <button @click="showHistogram = false" class="text-xs text-text-muted hover:text-text-primary" :aria-label="$t('preview.close')">&#10005;</button>
-            </div>
-            <Histogram :photo-id="photo.id" />
-          </div>
-        </Transition>
-
         <!-- EXIF 信息面板 -->
         <ExifPanel :photo="photo" :visible="showExif" />
 
@@ -201,11 +187,6 @@ onUnmounted(() => {
             <template v-if="photo.shutter_speed"> · {{ photo.shutter_speed }}</template>
             <template v-if="photo.iso"> · ISO {{ photo.iso }}</template>
           </div>
-          <button @click="showHistogram = !showHistogram"
-                  class="text-xs text-text-muted hover:text-accent transition-colors"
-                  :title="$t('preview.histogram') + ' (H)'">
-            ◉
-          </button>
           <button @click="showExif = !showExif"
                   class="text-xs text-text-muted hover:text-accent transition-colors"
                   :title="$t('exif.title') + ' (I)'">

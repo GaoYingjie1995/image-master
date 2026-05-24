@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '../../stores/toast'
 import { useAlbumsStore, type Album } from '../../stores/albums'
-import { Image, Star, Clock, XCircle, Copy, Trash2, FileEdit, Download, Map as MapIcon, BarChart3, Columns, FolderInput } from 'lucide-vue-next'
+import { Image, Star, Clock, XCircle, Copy, Trash2, FileEdit, Download, Map as MapIcon, FolderInput } from 'lucide-vue-next'
 import AlbumDialog from '../album/AlbumDialog.vue'
 import AlbumTreeItem from '../album/AlbumTreeItem.vue'
 import SidebarNavGroup from './SidebarNavGroup.vue'
@@ -91,9 +91,7 @@ const toolItems = [
 ]
 
 const analysisItems = [
-  { icon: MapIcon, labelKey: 'nav.map', route: '/map' },
-  { icon: BarChart3, labelKey: 'nav.histogram', route: '/histogram' },
-  { icon: Columns, labelKey: 'nav.compare', route: '/compare' }
+  { icon: MapIcon, labelKey: 'nav.map', route: '/map' }
 ]
 
 const manageItems = [

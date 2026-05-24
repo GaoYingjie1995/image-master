@@ -25,8 +25,6 @@ export default {
     batchExport: '批量导出',
     analysis: '分析',
     map: '地图视图',
-    histogram: '直方图',
-    compare: '照片对比',
     smartAlbums: '智能相册',
     albums: '相册',
     newAlbum: '+ 新建相册',
@@ -75,7 +73,6 @@ export default {
       rate4: '评分 4 星',
       rate5: '评分 5 星',
       reject: '拒绝标记',
-      histogram: '直方图',
       delete: '删除',
       export: '导出'
     },
@@ -182,19 +179,6 @@ export default {
     dateTo: '结束日期',
     filter: '筛选'
   },
-  histogram: {
-    title: '直方图分析',
-    noPhotos: '暂无照片，请先导入',
-    rgbTitle: 'RGB 直方图',
-    red: '红',
-    green: '绿',
-    blue: '蓝',
-    luminance: '亮度',
-    shadowClip: '欠曝 {value}%',
-    highlightClip: '过曝 {value}%',
-    shadowNormal: '阴影正常',
-    highlightNormal: '高光正常'
-  },
   contextMenu: {
     copyPath: '复制路径',
     showInFinder: '在 Finder 中显示',
@@ -280,7 +264,6 @@ export default {
     prev: '上一张',
     next: '下一张',
     close: '关闭',
-    histogram: '直方图',
     zoomIn: '放大',
     zoomOut: '缩小',
     fitWindow: '适应窗口',
@@ -295,13 +278,6 @@ export default {
     previewTitle: '重命名预览 ({count} 个)',
     doneTitle: '重命名完成 ({count} 个)',
     continueRename: '继续重命名'
-  },
-  compare: {
-    title: '照片对比',
-    selectFirst: '选择第一张照片',
-    selectSecond: '选择第二张照片',
-    noSelection: '请在照片网格中选择两张照片进行对比',
-    ready: '已选择两张照片，点击对比按钮'
   },
   exif: {
     title: '照片信息',

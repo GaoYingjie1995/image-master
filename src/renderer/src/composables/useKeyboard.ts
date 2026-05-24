@@ -12,7 +12,6 @@ export interface KeyBindings {
   rate4: string
   rate5: string
   reject: string
-  histogram: string
   delete: string
   export: string
 }
@@ -28,7 +27,6 @@ const DEFAULT_BINDINGS: KeyBindings = {
   rate4: '4',
   rate5: '5',
   reject: 'x',
-  histogram: 'h',
   delete: 'Delete',
   export: 'e'
 }
