@@ -31,18 +31,18 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="h-11 bg-bg-secondary border-b border-white/5 flex items-center px-4 gap-3">
+  <div class="h-11 bg-bg-secondary border-b border-border-subtle flex items-center px-4 gap-3">
     <div class="flex gap-0.5">
       <button v-for="opt in [{ value: 'date', labelKey: 'toolbar.date' }, { value: 'size', labelKey: 'toolbar.size' }, { value: 'rating', labelKey: 'toolbar.rating' }]" :key="opt.value"
               @click="$emit('sort', opt.value)"
               class="px-2.5 py-1 text-xs rounded-md transition-colors"
-              :class="sortBy === opt.value ? 'bg-accent-dim text-accent' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'">
+              :class="sortBy === opt.value ? 'bg-fuji-warm-dim text-fuji-warm' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'">
         {{ $t(opt.labelKey) }}
       </button>
     </div>
-    <div class="w-px h-5 bg-white/5 mx-1.5"></div>
+    <div class="w-px h-5 bg-border-subtle mx-1.5"></div>
     <div class="flex-1"></div>
-    <div class="flex items-center gap-1.5 bg-bg-tertiary border border-white/5 rounded-md px-2.5 py-1 w-48 focus-within:border-accent/30 focus-within:bg-bg-hover transition-colors">
+    <div class="flex items-center gap-1.5 bg-bg-tertiary border border-border-subtle rounded-md px-2.5 py-1 w-48 focus-within:border-fuji-warm/30 focus-within:bg-bg-hover transition-colors">
       <Search :size="14" class="text-text-muted" />
       <input v-model="searchInput" type="text" :placeholder="$t('toolbar.search')"
              class="bg-transparent text-text-primary text-xs outline-none w-full placeholder:text-text-muted" />

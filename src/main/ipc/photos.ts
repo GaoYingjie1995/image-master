@@ -51,8 +51,16 @@ export function registerPhotoIpc(db: Database.Database) {
     repo.updateColorLabel(id, label)
   })
 
+  ipcMain.handle('photos:batchUpdateColorLabel', (_event, ids: number[], label: string | null) => {
+    repo.batchUpdateColorLabel(ids, label)
+  })
+
   ipcMain.handle('photos:updateRejected', (_event, id: number, rejected: boolean) => {
     repo.updateRejected(id, rejected)
+  })
+
+  ipcMain.handle('photos:batchUpdateRejected', (_event, ids: number[], rejected: boolean) => {
+    repo.batchUpdateRejected(ids, rejected)
   })
 
   ipcMain.handle('photos:batchDelete', async (_event, ids: number[]) => {
@@ -157,6 +165,36 @@ export function registerPhotoIpc(db: Database.Database) {
     }
 
     return thumbPath
+  })
+
+  // 批量获取缩略图路径，减少 IPC 调用次数
+  ipcMain.handle('photos:getThumbnails', async (_event, photoIds: number[]) => {
+    const { access } = await import('fs/promises')
+    const results: Record<number, string | null> = {}
+
+    // 并行处理所有请求
+    await Promise.all(photoIds.map(async (photoId) => {
+      try {
+        const photo = repo.getById(photoId)
+        if (!photo) {
+          results[photoId] = null
+          return
+        }
+
+        const thumbPath = await getThumbnailPathForPhoto(photoId, photo.file_path)
+        try {
+          await access(thumbPath)
+          results[photoId] = thumbPath
+        } catch {
+          await generateThumbnail(photo.file_path, thumbPath)
+          results[photoId] = thumbPath
+        }
+      } catch {
+        results[photoId] = null
+      }
+    }))
+
+    return results
   })
 
   ipcMain.handle('photos:getPreview', async (_event, photoId: number) => {

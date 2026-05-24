@@ -9,7 +9,7 @@ export default {
     close: 'Close'
   },
   app: {
-    name: 'Image Master',
+    name: 'Glint',
     version: 'v0.1.0'
   },
   nav: {

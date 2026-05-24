@@ -9,7 +9,7 @@ export default {
     close: '关闭'
   },
   app: {
-    name: 'Image Master',
+    name: 'Glint',
     version: 'v0.1.0'
   },
   nav: {
@@ -72,9 +72,20 @@ export default {
       rate3: '评分 3 星',
       rate4: '评分 4 星',
       rate5: '评分 5 星',
+      rate0: '清除评分',
       reject: '拒绝标记',
       delete: '删除',
-      export: '导出'
+      export: '导出',
+      colorRed: '红色标签',
+      colorYellow: '黄色标签',
+      colorGreen: '绿色标签',
+      colorBlue: '蓝色标签',
+      colorPurple: '紫色标签',
+      zoomIn: '放大',
+      zoomOut: '缩小',
+      zoomToggle: '切换缩放',
+      exifToggle: '显示/隐藏 EXIF',
+      keepZoom: '保持缩放'
     },
     keyBindingConflict: '快捷键冲突：{key} 已被 "{action}" 使用'
   },
@@ -209,7 +220,12 @@ export default {
     confirmRemove: '确定要从相册中移除这张照片吗？（文件不会被删除）',
     photoCount: '{count} 张',
     childAlbums: '子相册',
-    setAsCover: '设为封面'
+    setAsCover: '设为封面',
+    createTitle: '新建相册',
+    namePlaceholder: '相册名称',
+    parentAlbum: '父相册',
+    noParent: '无（顶级相册）',
+    create: '创建'
   },
   smartAlbum: {
     createTitle: '新建智能相册',
@@ -306,7 +322,9 @@ export default {
     clearSelection: '取消选择',
     deleteOthers: '删除其他 {count} 个',
     selectAll: '全选',
-    deselectAll: '取消全选'
+    deselectAll: '取消全选',
+    confirmReject: '确定要将 {count} 张照片标记为拒绝吗？',
+    confirmDelete: '确定要删除 {count} 张照片吗？此操作不可撤销。'
   },
   imports: {
     title: '导入文件夹管理',

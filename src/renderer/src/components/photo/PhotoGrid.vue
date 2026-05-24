@@ -1,8 +1,27 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import PhotoItem from './PhotoItem.vue'
 import { useSelectionStore } from '../../stores/selection'
+import { createLocalFileUrl } from '@shared/local-protocol'
 import type { Photo } from '../../stores/photos'
+import {
+  calculateColumns,
+  calculateItemSize,
+  calculateItemHeight,
+  calculateGroupLayouts,
+  calculateTotalContentHeight,
+  findVisibleItems,
+  POLAROID_LAYOUT_CONFIG,
+  type PhotoData,
+  type DateGroup,
+  type PhotoLayout,
+  type GroupLayout
+} from '../../utils/grid-layout'
+
+// 为 PhotoData 扩展 Photo 类型
+interface PhotoWithId extends PhotoData {
+  [key: string]: unknown
+}
 
 const props = defineProps<{
   photos: Photo[]
@@ -24,35 +43,90 @@ const containerHeight = ref(0)
 const containerWidth = ref(0)
 let resizeObserver: ResizeObserver | null = null
 
-const ITEM_MIN_WIDTH = 160
-const GRID_GAP = 6
-const CONTAINER_PADDING_X = 32
-const HEADER_HEIGHT = 24
-const HEADER_MARGIN_BOTTOM = 10
-const GROUP_MARGIN_BOTTOM = 16
-const OVERSCAN_PX = 600
+// LRU 缩略图缓存
+const THUMB_CACHE_MAX_SIZE = 5000
+const thumbUrlCache = ref<Map<number, string>>(new Map())
+
+function setThumbCache(id: number, url: string) {
+  const cache = thumbUrlCache.value
+  if (cache.has(id)) {
+    cache.delete(id)
+  }
+  cache.set(id, url)
+  if (cache.size > THUMB_CACHE_MAX_SIZE) {
+    const firstKey = cache.keys().next().value
+    if (firstKey !== undefined) {
+      cache.delete(firstKey)
+    }
+  }
+}
+
+// 拍立得布局配置
+const config = POLAROID_LAYOUT_CONFIG
+const CONTAINER_PADDING_X = config.containerPaddingX
+const OVERSCAN_PX = config.overscanPx
 
 const contentWidth = computed(() => Math.max(0, containerWidth.value - CONTAINER_PADDING_X))
 const columns = computed(() => {
   const w = contentWidth.value || 1200
-  return Math.max(1, Math.floor((w + GRID_GAP) / (ITEM_MIN_WIDTH + GRID_GAP)))
+  return calculateColumns(w, config.itemMinWidth, config.gridGap)
 })
 const itemSize = computed(() => {
   const cols = columns.value
-  const w = contentWidth.value || cols * ITEM_MIN_WIDTH + (cols - 1) * GRID_GAP
-  return (w - GRID_GAP * (cols - 1)) / cols
+  const w = contentWidth.value || cols * config.itemMinWidth + (cols - 1) * config.gridGap
+  return calculateItemSize(w, cols, config.gridGap)
 })
 
+// 拍立得卡片高度 = 宽度 + 底栏高度
+const itemHeight = computed(() => calculateItemHeight(itemSize.value, config.captionHeight))
+
+// 批量加载缩略图
+let loadingThumbIds = new Set<number>()
+async function loadThumbnailsForVisible(photos: Photo[]) {
+  const idsToLoad = photos
+    .filter(p => !thumbUrlCache.value.has(p.id) && !loadingThumbIds.has(p.id))
+    .map(p => p.id)
+
+  if (idsToLoad.length === 0) return
+
+  idsToLoad.forEach(id => loadingThumbIds.add(id))
+
+  try {
+    if (window.electronAPI) {
+      const results = await window.electronAPI.photos.getThumbnails(idsToLoad)
+      for (const [idStr, path] of Object.entries(results)) {
+        const id = Number(idStr)
+        if (path) {
+          setThumbCache(id, createLocalFileUrl('local-thumbnail', path as string))
+        }
+        loadingThumbIds.delete(id)
+      }
+    }
+  } catch {
+    idsToLoad.forEach(id => loadingThumbIds.delete(id))
+  }
+}
+
+watch(() => props.photos, (newPhotos) => {
+  if (newPhotos.length > 0) {
+    loadThumbnailsForVisible(newPhotos)
+  }
+}, { immediate: true })
+
 // 滚动到底部时触发加载更多
+let loadMoreThrottleTimer: ReturnType<typeof setTimeout> | null = null
 function handleScroll() {
   const el = containerRef.value
   if (!el) return
   scrollTop.value = el.scrollTop
 
   if (!props.hasMore || props.loadingMore) return
-  // 距离底部 300px 时触发预加载
   if (el.scrollTop + el.clientHeight >= el.scrollHeight - 300) {
-    emit('loadMore')
+    if (loadMoreThrottleTimer) return
+    loadMoreThrottleTimer = setTimeout(() => {
+      loadMoreThrottleTimer = null
+      emit('loadMore')
+    }, 200)
   }
 }
 
@@ -80,6 +154,9 @@ onUnmounted(() => {
     resizeObserver.disconnect()
     resizeObserver = null
   }
+  if (loadMoreThrottleTimer) {
+    clearTimeout(loadMoreThrottleTimer)
+  }
 })
 
 function handleClick(photo: Photo, event: MouseEvent) {
@@ -92,136 +169,84 @@ function handleClick(photo: Photo, event: MouseEvent) {
   }
 }
 
-interface DateGroup { label: string; photos: Photo[] }
-
+// 日期分组
 const dateGroups = computed(() => {
-  const groups: DateGroup[] = []
-  const map = new Map<string, Photo[]>()
+  const groups: DateGroup<PhotoWithId>[] = []
+  const map = new Map<string, PhotoWithId[]>()
 
   for (const photo of props.photos) {
     const date = photo.shot_at?.split('T')[0] || photo.created_at?.split('T')[0] || '未知日期'
     if (!map.has(date)) {
       map.set(date, [])
     }
-    map.get(date)!.push(photo)
+    map.get(date)!.push(photo as PhotoWithId)
   }
 
+  let startIndex = 0
   for (const [date, photos] of map) {
-    groups.push({ label: date, photos })
+    groups.push({ label: date, photos, startIndex })
+    startIndex += photos.length
   }
 
   return groups
 })
 
-interface GroupLayout extends DateGroup {
-  offsetTop: number
-  totalHeight: number
-}
-
-const groupLayouts = computed<GroupLayout[]>(() => {
-  const layouts: GroupLayout[] = []
-  let offset = 0
-
-  for (const group of dateGroups.value) {
-    const photoRows = Math.ceil(group.photos.length / columns.value)
-    const photosHeight = photoRows > 0
-      ? photoRows * itemSize.value + (photoRows - 1) * GRID_GAP
-      : 0
-    const totalHeight = HEADER_HEIGHT + HEADER_MARGIN_BOTTOM + photosHeight + GROUP_MARGIN_BOTTOM
-
-    layouts.push({
-      ...group,
-      offsetTop: offset,
-      totalHeight
-    })
-    offset += totalHeight
-  }
-
-  return layouts
+// 使用 grid-layout 工具函数计算布局
+const groupLayouts = computed(() => {
+  return calculateGroupLayouts(
+    dateGroups.value,
+    columns.value,
+    itemSize.value,
+    itemHeight.value,
+    config
+  )
 })
 
 const totalContentHeight = computed(() => {
-  const layouts = groupLayouts.value
-  if (layouts.length === 0) return 0
-  const last = layouts[layouts.length - 1]
-  return last.offsetTop + last.totalHeight
+  return calculateTotalContentHeight(groupLayouts.value, config.groupGap)
 })
 
-function findFirstVisibleGroup(layouts: GroupLayout[], viewportTop: number): number {
-  let left = 0
-  let right = layouts.length - 1
-  let ans = layouts.length
-
-  while (left <= right) {
-    const mid = (left + right) >> 1
-    const groupBottom = layouts[mid].offsetTop + layouts[mid].totalHeight
-    if (groupBottom >= viewportTop) {
-      ans = mid
-      right = mid - 1
-    } else {
-      left = mid + 1
-    }
-  }
-
-  return ans
-}
-
-function findLastVisibleGroup(layouts: GroupLayout[], viewportBottom: number): number {
-  let left = 0
-  let right = layouts.length - 1
-  let ans = -1
-
-  while (left <= right) {
-    const mid = (left + right) >> 1
-    if (layouts[mid].offsetTop <= viewportBottom) {
-      ans = mid
-      left = mid + 1
-    } else {
-      right = mid - 1
-    }
-  }
-
-  return ans
-}
-
-const visibleGroups = computed(() => {
-  const layouts = groupLayouts.value
-  if (layouts.length === 0) return layouts
-  const viewportTop = Math.max(0, scrollTop.value - OVERSCAN_PX)
-  const viewportBottom = scrollTop.value + containerHeight.value + OVERSCAN_PX
-  const start = findFirstVisibleGroup(layouts, viewportTop)
-  const end = findLastVisibleGroup(layouts, viewportBottom)
-
-  if (start > end || start >= layouts.length || end < 0) return []
-  return layouts.slice(start, end + 1)
+// 获取可见的照片
+const visibleItems = computed(() => {
+  return findVisibleItems(
+    groupLayouts.value,
+    scrollTop.value,
+    containerHeight.value,
+    OVERSCAN_PX
+  )
 })
 </script>
 
 <template>
   <div ref="containerRef" class="flex-1 overflow-y-auto p-4">
     <div :style="{ height: totalContentHeight + 'px', position: 'relative' }">
-      <div v-for="group in visibleGroups" :key="group.label"
-           :style="{ position: 'absolute', top: group.offsetTop + 'px', left: 0, right: 0, marginBottom: GROUP_MARGIN_BOTTOM + 'px' }">
-        <div class="flex items-center gap-3"
-             :style="{ height: HEADER_HEIGHT + 'px', marginBottom: HEADER_MARGIN_BOTTOM + 'px' }">
-          <span class="text-[11px] font-medium text-text-muted uppercase tracking-[1.5px]">{{ group.label }}</span>
-          <span class="text-[10px] text-text-muted">· {{ group.photos.length }} 张</span>
-          <div class="flex-1 h-px bg-white/5"></div>
-        </div>
-        <div class="grid gap-1.5" :style="{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }">
-          <PhotoItem v-for="photo in group.photos" :key="photo.id"
-                     :photo="photo"
-                     :selected="selection.selectedIds.has(photo.id)"
-                     v-memo="[photo.id, selection.selectedIds.has(photo.id), photo.rating, photo.color_label, photo.is_rejected]"
-                     @click="handleClick(photo, $event)"
-                     @rate="emit('rate', photo.id, $event)"
-                     @contextmenu="emit('contextmenu', $event, photo)" />
-        </div>
+      <!-- 渲染可见的组标题 -->
+      <div v-for="group in visibleItems.groups" :key="group.label"
+           class="flex items-center gap-3 absolute left-0 right-0"
+           :style="{ top: group.headerTop + 'px', height: config.headerHeight + 'px' }">
+        <span class="text-[11px] font-medium text-text-muted uppercase tracking-[1.5px] font-hand">{{ group.label }}</span>
+        <span class="text-[10px] text-text-muted">· {{ group.photos.length }} 张</span>
+        <div class="flex-1 h-px bg-white/5"></div>
+      </div>
+
+      <!-- 渲染可见的照片 -->
+      <div v-for="photoLayout in visibleItems.photos" :key="photoLayout.photo.id"
+           class="absolute"
+           :style="{ left: photoLayout.x + 'px', top: photoLayout.y + 'px', width: photoLayout.width + 'px', height: photoLayout.height + 'px' }">
+        <PhotoItem
+          :photo="photoLayout.photo"
+          :selected="selection.selectedIds.has(photoLayout.photo.id)"
+          :thumb-url="thumbUrlCache.get(photoLayout.photo.id)"
+          v-memo="[photoLayout.photo.id, selection.selectedIds.has(photoLayout.photo.id), photoLayout.photo.rating, photoLayout.photo.color_label, photoLayout.photo.is_rejected, thumbUrlCache.get(photoLayout.photo.id)]"
+          @click="handleClick(photoLayout.photo, $event)"
+          @rate="emit('rate', photoLayout.photo.id, $event)"
+          @contextmenu="emit('contextmenu', $event, photoLayout.photo)" />
       </div>
     </div>
+
     <!-- 加载更多提示 -->
     <div v-if="loadingMore" class="flex items-center justify-center py-4 gap-2">
-      <div class="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div>
+      <div class="w-4 h-4 border-2 border-fuji-warm/30 border-t-fuji-warm rounded-full animate-spin"></div>
       <span class="text-xs text-text-muted">加载更多...</span>
     </div>
     <div v-else-if="!hasMore && photos.length > 0" class="text-center py-4">

@@ -18,6 +18,21 @@ const { t } = useI18n()
 const toast = useToastStore()
 const albumsStore = useAlbumsStore()
 
+function isActive(path: string) {
+  return route.path === path
+}
+
+function navigate(path: string) {
+  router.push(path)
+}
+
+function handleNavKeydown(e: KeyboardEvent, path: string) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault()
+    navigate(path)
+  }
+}
+
 interface SmartAlbum { id: number; name: string; rules: string }
 
 const smartAlbums = ref<SmartAlbum[]>([])
@@ -98,13 +113,14 @@ const manageItems = [
   { icon: FolderInput, labelKey: 'nav.importSources', route: '/imports' }
 ]
 
-async function handleCreateAlbum(name: string) {
+async function handleCreateAlbum(name: string, parentId: number | null, parentPath: string) {
   if (!albumTree.value.length) {
     toast.show(t('toast.importFirst'), 'error')
     return
   }
-  const parentPath = albumTree.value[0].folder_path
-  await albumsStore.createAlbum(name, parentPath)
+  // 如果没有指定父相册路径，使用第一个根相册的路径
+  const finalParentPath = parentPath || albumTree.value[0].folder_path
+  await albumsStore.createAlbum(name, finalParentPath, parentId)
   showAlbumDialog.value = false
 }
 
@@ -210,16 +226,7 @@ async function confirmDeleteAlbum() {
 </script>
 
 <template>
-  <aside class="w-[220px] bg-bg-primary border-r border-white/5 flex flex-col overflow-y-auto py-3" role="navigation" aria-label="主导航">
-    <SidebarNavGroup :title="$t('nav.browse')" :items="navItems" />
-    <div class="h-px bg-white/5 mx-3 my-2" role="separator"></div>
-    <SidebarNavGroup :title="$t('nav.tools')" :items="toolItems" />
-    <div class="h-px bg-white/5 mx-3 my-2" role="separator"></div>
-    <SidebarNavGroup :title="$t('nav.analysis')" :items="analysisItems" />
-    <div class="h-px bg-white/5 mx-3 my-2" role="separator"></div>
-    <SidebarNavGroup :title="$t('nav.manage')" :items="manageItems" />
-    <div class="h-px bg-white/5 mx-3 my-2" role="separator"></div>
-
+  <aside class="w-[220px] bg-bg-primary border-r border-border-subtle flex flex-col overflow-y-auto py-3" role="navigation" aria-label="主导航">
     <div class="px-3 flex-1">
       <!-- 智能相册 -->
       <div class="text-[10px] font-medium text-text-muted uppercase tracking-[1.5px] px-3 pb-1.5" role="heading" aria-level="2">{{ $t('nav.smartAlbums') }}</div>
@@ -230,22 +237,22 @@ async function confirmDeleteAlbum() {
            tabindex="0"
            role="link"
            :aria-current="isActive(`/smart-album/${album.id}`) ? 'page' : undefined"
-           class="flex items-center gap-2 py-1.5 px-3 rounded-md cursor-pointer transition-colors text-xs outline-none focus:ring-1 focus:ring-accent/50"
-           :class="isActive(`/smart-album/${album.id}`) ? 'bg-accent-dim text-accent' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'">
-        <span class="w-2 h-2 rounded-full bg-accent/50 shrink-0" aria-hidden="true"></span>
+           class="flex items-center gap-2 py-1.5 px-3 rounded-md cursor-pointer transition-colors text-xs outline-none focus:ring-1 focus:ring-fuji-warm/50"
+           :class="isActive(`/smart-album/${album.id}`) ? 'bg-fuji-warm-dim text-fuji-warm' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'">
+        <span class="w-2 h-2 rounded-full bg-fuji-warm/50 shrink-0" aria-hidden="true"></span>
         <span v-if="renamingId === album.id && renamingType === 'smart'" class="flex-1 min-w-0">
           <input v-model="renameInput" @keyup.enter="confirmRename" @keyup.escape="cancelRename" @blur="confirmRename"
-                 class="w-full bg-bg-tertiary border border-accent/30 rounded px-1 py-0.5 text-xs text-text-primary outline-none" autofocus />
+                 class="w-full bg-bg-tertiary border border-fuji-warm/30 rounded px-1 py-0.5 text-xs text-text-primary outline-none" autofocus />
         </span>
         <span v-else class="truncate flex-1 min-w-0">{{ album.name }}</span>
         <span v-if="smartAlbumPhotoCounts.has(album.id)" class="text-[10px] text-text-muted shrink-0">{{ $t('album.photoCount', { count: smartAlbumPhotoCounts.get(album.id) }) }}</span>
       </div>
       <button @click="showSmartAlbumDialog = true"
-              class="flex items-center gap-2 py-1.5 px-3 text-xs text-text-muted cursor-pointer hover:text-accent transition-colors w-full text-left">
+              class="flex items-center gap-2 py-1.5 px-3 text-xs text-text-muted cursor-pointer hover:text-fuji-warm transition-colors w-full text-left">
         {{ $t('nav.newSmartAlbum') }}
       </button>
 
-      <div class="h-px bg-white/5 mx-0 my-2" role="separator"></div>
+      <div class="h-px bg-border-subtle mx-0 my-2" role="separator"></div>
 
       <!-- 手动相册（树状结构） -->
       <div class="text-[10px] font-medium text-text-muted uppercase tracking-[1.5px] px-3 pb-1.5" role="heading" aria-level="2">{{ $t('nav.albums') }}</div>
@@ -254,7 +261,7 @@ async function confirmDeleteAlbum() {
         :key="album.id"
         :album="album"
         :depth="0"
-        :cover-url="albumCoverUrls.get(album.id)"
+        :cover-urls="albumCoverUrls"
         :is-renaming="renamingId === album.id && renamingType === 'album'"
         @contextmenu="handleAlbumTreeContext"
         @update:rename="(v: string) => renameInput = v"
@@ -262,12 +269,22 @@ async function confirmDeleteAlbum() {
         @cancel-rename="cancelRename"
       />
       <button @click="showAlbumDialog = true"
-              class="flex items-center gap-2 py-1.5 px-3 text-xs text-text-muted cursor-pointer hover:text-accent transition-colors w-full text-left">
+              class="flex items-center gap-2 py-1.5 px-3 text-xs text-text-muted cursor-pointer hover:text-fuji-warm transition-colors w-full text-left">
         {{ $t('nav.newAlbum') }}
       </button>
     </div>
 
+    <div class="h-px bg-border-subtle mx-3 my-2" role="separator"></div>
+    <SidebarNavGroup :title="$t('nav.browse')" :items="navItems" />
+    <div class="h-px bg-border-subtle mx-3 my-2" role="separator"></div>
+    <SidebarNavGroup :title="$t('nav.analysis')" :items="analysisItems" />
+    <div class="h-px bg-border-subtle mx-3 my-2" role="separator"></div>
+    <SidebarNavGroup :title="$t('nav.manage')" :items="manageItems" />
+    <div class="h-px bg-border-subtle mx-3 my-2" role="separator"></div>
+    <SidebarNavGroup :title="$t('nav.tools')" :items="toolItems" />
+
     <AlbumDialog :visible="showAlbumDialog"
+                 :current-album-id="route.params.id ? Number(route.params.id) : null"
                  @close="showAlbumDialog = false"
                  @create="handleCreateAlbum" />
     <SmartAlbumDialog :visible="showSmartAlbumDialog"
@@ -289,7 +306,7 @@ async function confirmDeleteAlbum() {
     <!-- 相册右键菜单 -->
     <Teleport to="body">
       <div v-if="contextMenu.visible"
-           class="fixed z-[100] min-w-[120px] bg-bg-primary/95 backdrop-blur-md border border-white/10 rounded-lg shadow-2xl shadow-black/50 py-1"
+           class="fixed z-[100] min-w-[120px] bg-bg-primary/95 backdrop-blur-md border border-border-film rounded-lg shadow-2xl shadow-black/50 py-1"
            :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }">
         <button @click="startRename"
                 class="w-full text-left px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover hover:text-text-primary transition-colors">
@@ -299,9 +316,9 @@ async function confirmDeleteAlbum() {
                 class="w-full text-left px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-hover hover:text-text-primary transition-colors">
           {{ $t('smartAlbum.editRules') }}
         </button>
-        <div class="h-px bg-white/5 my-1"></div>
+        <div class="h-px bg-border-subtle my-1"></div>
         <button @click="deleteAlbum"
-                class="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition-colors">
+                class="w-full text-left px-3 py-1.5 text-xs text-fuji-red hover:bg-fuji-red-dim transition-colors">
           {{ $t('album.delete') }}
         </button>
       </div>

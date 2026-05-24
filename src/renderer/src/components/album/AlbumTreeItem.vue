@@ -9,6 +9,7 @@ const props = defineProps<{
   album: Album
   depth: number
   coverUrl?: string
+  coverUrls?: Map<number, string>
   isRenaming: boolean
 }>()
 
@@ -52,8 +53,8 @@ function showContext(e: MouseEvent) {
 <template>
   <div>
     <div
-      class="flex items-center gap-2 py-1.5 px-3 rounded-md cursor-pointer transition-colors text-xs outline-none focus:ring-1 focus:ring-accent/50"
-      :class="isActive ? 'bg-accent-dim text-accent' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'"
+      class="flex items-center gap-2 py-1.5 px-3 rounded-md cursor-pointer transition-colors text-xs outline-none focus:ring-1 focus:ring-fuji-warm/50"
+      :class="isActive ? 'bg-fuji-warm-dim text-fuji-warm' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'"
       :style="{ paddingLeft: `${12 + depth * 16}px` }"
       tabindex="0"
       role="link"
@@ -72,8 +73,8 @@ function showContext(e: MouseEvent) {
       />
       <span v-else class="w-3.5 shrink-0"></span>
 
-      <img v-if="coverUrl" :src="coverUrl" class="w-5 h-5 rounded object-cover shrink-0" :alt="album.name" />
-      <span v-else class="w-2 h-2 rounded-full bg-accent shrink-0" aria-hidden="true"></span>
+      <img v-if="coverUrl || (coverUrls && coverUrls.get(album.id))" :src="coverUrl || coverUrls?.get(album.id)" class="w-5 h-5 rounded object-cover shrink-0 film-classic-chrome" :alt="album.name" />
+      <span v-else class="w-2 h-2 rounded-full bg-fuji-warm shrink-0" aria-hidden="true"></span>
 
       <span v-if="isRenaming" class="flex-1 min-w-0">
         <input
@@ -82,7 +83,7 @@ function showContext(e: MouseEvent) {
           @keyup.enter="emit('confirm-rename')"
           @keyup.escape="emit('cancel-rename')"
           @blur="emit('confirm-rename')"
-          class="w-full bg-bg-tertiary border border-accent/30 rounded px-1 py-0.5 text-xs text-text-primary outline-none"
+          class="w-full bg-bg-tertiary border border-fuji-warm/30 rounded px-1 py-0.5 text-xs text-text-primary outline-none"
           autofocus
         />
       </span>
@@ -99,7 +100,7 @@ function showContext(e: MouseEvent) {
         :key="child.id"
         :album="child"
         :depth="depth + 1"
-        :cover-url="undefined"
+        :cover-urls="coverUrls"
         :is-renaming="false"
         @contextmenu="(e, a) => emit('contextmenu', e, a)"
         @update:rename="emit('update:rename', $event)"

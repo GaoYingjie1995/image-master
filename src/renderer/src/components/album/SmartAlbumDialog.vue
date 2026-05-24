@@ -24,7 +24,6 @@ const conditions = ref<Array<{ field: string; op: string; value: string }>>([
 
 const isEditMode = ref(false)
 
-// 编辑模式：加载已有规则
 watch(() => props.visible, (visible) => {
   if (visible && props.editId && props.editRules) {
     isEditMode.value = true
@@ -85,9 +84,7 @@ function buildRules(): string {
     conditions: conditions.value.map(c => {
       let value: unknown = c.value
       if (c.op === 'in') {
-        // in 操作符：逗号分隔的值转为数组
         value = c.value.split(',').map(v => v.trim()).filter(Boolean)
-        // 尝试转为数字数组（适用于数值字段）
         if (['rating', 'iso', 'aperture'].includes(c.field)) {
           value = (value as string[]).map(v => Number(v))
         }
@@ -120,8 +117,8 @@ function handleSave() {
     <Transition name="fade">
       <div v-if="visible" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center"
            @click.self="emit('close')">
-        <div class="bg-bg-secondary rounded-xl border border-white/5 p-6 w-[480px] max-h-[80vh] overflow-y-auto">
-          <h3 class="font-display text-lg text-accent mb-4">
+        <div class="bg-bg-secondary rounded-xl border border-border-film p-6 w-[480px] max-h-[80vh] overflow-y-auto">
+          <h3 class="font-hand text-lg text-fuji-warm mb-4">
             {{ isEditMode ? $t('smartAlbum.editTitle') : $t('smartAlbum.createTitle') }}
           </h3>
 
@@ -129,7 +126,7 @@ function handleSave() {
             <div>
               <label class="text-xs text-text-secondary block mb-1">{{ $t('smartAlbum.albumName') }}</label>
               <input v-model="name" :placeholder="$t('smartAlbum.namePlaceholder')"
-                     class="w-full bg-bg-tertiary border border-white/5 rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent/30" />
+                     class="w-full bg-bg-tertiary border border-border-subtle rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-fuji-warm/30" />
             </div>
 
             <div>
@@ -137,12 +134,12 @@ function handleSave() {
               <div class="flex gap-2">
                 <button @click="operator = 'AND'"
                         class="px-3 py-1 text-xs rounded-md transition-colors"
-                        :class="operator === 'AND' ? 'bg-accent-dim text-accent' : 'bg-bg-tertiary text-text-secondary'">
+                        :class="operator === 'AND' ? 'bg-fuji-warm-dim text-fuji-warm' : 'bg-bg-tertiary text-text-secondary'">
                   {{ $t('smartAlbum.matchAll') }} (AND)
                 </button>
                 <button @click="operator = 'OR'"
                         class="px-3 py-1 text-xs rounded-md transition-colors"
-                        :class="operator === 'OR' ? 'bg-accent-dim text-accent' : 'bg-bg-tertiary text-text-secondary'">
+                        :class="operator === 'OR' ? 'bg-fuji-warm-dim text-fuji-warm' : 'bg-bg-tertiary text-text-secondary'">
                   {{ $t('smartAlbum.matchAny') }} (OR)
                 </button>
               </div>
@@ -153,23 +150,23 @@ function handleSave() {
               <div class="space-y-2">
                 <div v-for="(cond, i) in conditions" :key="i" class="flex gap-2 items-center">
                   <select v-model="cond.field"
-                          class="bg-bg-tertiary border border-white/5 rounded px-2 py-1.5 text-xs text-text-primary outline-none">
+                          class="bg-bg-tertiary border border-border-subtle rounded px-2 py-1.5 text-xs text-text-primary outline-none">
                     <option v-for="f in fields" :key="f.value" :value="f.value">{{ f.label }}</option>
                   </select>
                   <select v-model="cond.op"
-                          class="bg-bg-tertiary border border-white/5 rounded px-2 py-1.5 text-xs text-text-primary outline-none">
+                          class="bg-bg-tertiary border border-border-subtle rounded px-2 py-1.5 text-xs text-text-primary outline-none">
                     <option v-for="o in ops" :key="o.value" :value="o.value">{{ o.label }}</option>
                   </select>
                   <input v-if="!['this_month', 'this_year'].includes(cond.op)"
                          v-model="cond.value"
                          :placeholder="cond.op === 'in' ? $t('smartAlbum.inPlaceholder') : $t('smartAlbum.valuePlaceholder')"
-                         class="flex-1 bg-bg-tertiary border border-white/5 rounded px-2 py-1.5 text-xs text-text-primary outline-none" />
+                         class="flex-1 bg-bg-tertiary border border-border-subtle rounded px-2 py-1.5 text-xs text-text-primary outline-none" />
                   <button @click="removeCondition(i)"
-                          class="w-6 h-6 flex items-center justify-center text-text-muted hover:text-red-400 text-xs">✕</button>
+                          class="w-6 h-6 flex items-center justify-center text-text-muted hover:text-fuji-red text-xs">✕</button>
                 </div>
               </div>
               <button @click="addCondition"
-                      class="mt-2 text-xs text-text-muted hover:text-accent transition-colors">
+                      class="mt-2 text-xs text-text-muted hover:text-fuji-warm transition-colors">
                 + {{ $t('smartAlbum.addCondition') }}
               </button>
             </div>
@@ -181,7 +178,7 @@ function handleSave() {
               {{ $t('album.cancel') }}
             </button>
             <button @click="handleSave"
-                    class="px-4 py-1.5 text-sm rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors">
+                    class="px-4 py-1.5 text-sm rounded-lg bg-fuji-warm/10 text-fuji-warm hover:bg-fuji-warm/20 transition-colors">
               {{ isEditMode ? $t('smartAlbum.save') : $t('smartAlbum.create') }}
             </button>
           </div>

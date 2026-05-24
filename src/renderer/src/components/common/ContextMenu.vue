@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import type { MenuItem } from '@renderer/types/menu'
 
 export type { MenuItem }
@@ -16,6 +16,55 @@ const emit = defineEmits<{
 }>()
 
 const menuRef = ref<HTMLElement | null>(null)
+const adjustedX = ref(props.x)
+const adjustedY = ref(props.y)
+
+// 调整菜单位置防止溢出屏幕
+function adjustPosition() {
+  if (!menuRef.value) return
+
+  const rect = menuRef.value.getBoundingClientRect()
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+  const menuWidth = rect.width || 160
+  const menuHeight = rect.height || 200
+
+  let x = props.x
+  let y = props.y
+
+  if (x + menuWidth > viewportWidth) {
+    x = viewportWidth - menuWidth - 8
+  }
+
+  if (y + menuHeight > viewportHeight) {
+    y = viewportHeight - menuHeight - 8
+  }
+
+  if (x < 8) {
+    x = 8
+  }
+
+  if (y < 8) {
+    y = 8
+  }
+
+  adjustedX.value = x
+  adjustedY.value = y
+}
+
+watch(() => props.visible, async (visible) => {
+  if (visible) {
+    adjustedX.value = props.x
+    adjustedY.value = props.y
+    await nextTick()
+    adjustPosition()
+  }
+})
+
+watch(() => [props.x, props.y], () => {
+  adjustedX.value = props.x
+  adjustedY.value = props.y
+})
 
 function handleClickOutside(e: MouseEvent) {
   if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
@@ -43,10 +92,10 @@ onUnmounted(() => {
   <Teleport to="body">
     <Transition name="context-menu">
       <div v-if="visible" ref="menuRef"
-           class="fixed z-[100] min-w-[160px] bg-bg-primary/95 backdrop-blur-md border border-white/10 rounded-lg shadow-2xl shadow-black/50 py-1"
-           :style="{ left: x + 'px', top: y + 'px' }">
+           class="fixed z-[100] min-w-[160px] bg-bg-primary/95 backdrop-blur-md border border-border-film rounded-lg shadow-2xl shadow-black/50 py-1"
+           :style="{ left: adjustedX + 'px', top: adjustedY + 'px' }">
         <template v-for="(item, i) in items" :key="i">
-          <div v-if="item.divider" class="h-px bg-white/5 my-1"></div>
+          <div v-if="item.divider" class="h-px bg-border-subtle my-1"></div>
           <div v-else
                @click="handleAction(item)"
                class="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer transition-colors"

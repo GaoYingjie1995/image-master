@@ -8,12 +8,18 @@ importers:
 
   .:
     dependencies:
-      '@fontsource/dm-sans':
+      '@fontsource/caveat':
         specifier: ^5.2.8
         version: 5.2.8
-      '@fontsource/playfair-display':
+      '@fontsource/inter':
         specifier: ^5.2.8
         version: 5.2.8
+      '@fontsource/ma-shan-zheng':
+        specifier: ^5.2.8
+        version: 5.2.9
+      '@fontsource/space-mono':
+        specifier: ^5.2.8
+        version: 5.2.9
       '@types/leaflet.markercluster':
         specifier: ^1.5.6
         version: 1.5.6
@@ -560,11 +566,17 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@fontsource/dm-sans@5.2.8':
-    resolution: {integrity: sha512-tlovG42m9ESG28WiHpLq3F5umAlm64rv0RkqTbYowRn70e9OlRr5a3yTJhrhrY+k5lftR/OFJjPzOLQzk8EfCA==}
+  '@fontsource/caveat@5.2.8':
+    resolution: {integrity: sha512-9fUUfFE2IQFKbx+xOcaeQxxmh8iJguEb8z+j1PeueO4UUx+XfT4pRm/B04ZDvFA794/iRxY/IibmP8ZKtIf4rw==}
 
-  '@fontsource/playfair-display@5.2.8':
-    resolution: {integrity: sha512-fUEhib70SszNhQVsGbUMSsWJhr7Je0rdeuZdtGpDNu0GKF1xJM8QhpI/y0pckU25GcChXm9TLOmeZupkvvZo2g==}
+  '@fontsource/inter@5.2.8':
+    resolution: {integrity: sha512-P6r5WnJoKiNVV+zvW2xM13gNdFhAEpQ9dQJHt3naLvfg+LkF2ldgSLiF4T41lf1SQCM9QmkqPTn4TH568IRagg==}
+
+  '@fontsource/ma-shan-zheng@5.2.9':
+    resolution: {integrity: sha512-5Pvpb5q6sq00/g+yLLE8iYWcsAqnoIqCloBsjN0bphkGWU3Wp3EfT0CgTsKOiLsPM8GN3AUP0ZaFM2/JR33C/g==}
+
+  '@fontsource/space-mono@5.2.9':
+    resolution: {integrity: sha512-b61faFOHEISQ/pD25G+cfGY9o/WW6lRv6hBQQfpWvEJ4y1V+S4gmth95EVyBE2VL3qDYHeVQ8nBzrplzdXTDDg==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -3326,9 +3338,13 @@ snapshots:
   '@esbuild/win32-x64@0.27.7':
     optional: true
 
-  '@fontsource/dm-sans@5.2.8': {}
+  '@fontsource/caveat@5.2.8': {}
 
-  '@fontsource/playfair-display@5.2.8': {}
+  '@fontsource/inter@5.2.8': {}
+
+  '@fontsource/ma-shan-zheng@5.2.9': {}
+
+  '@fontsource/space-mono@5.2.9': {}
 
   '@img/colour@1.1.0': {}
 

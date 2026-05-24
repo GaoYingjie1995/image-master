@@ -1,37 +1,50 @@
-@import '@fontsource/dm-sans/300.css';
-@import '@fontsource/dm-sans/400.css';
-@import '@fontsource/dm-sans/500.css';
-@import '@fontsource/dm-sans/600.css';
-@import '@fontsource/playfair-display/400.css';
-@import '@fontsource/playfair-display/600.css';
+@import '@fontsource/inter/300.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/caveat/400.css';
+@import '@fontsource/caveat/500.css';
+@import '@fontsource/caveat/600.css';
+@import '@fontsource/caveat/700.css';
+@import '@fontsource/space-mono/400.css';
+@import '@fontsource/space-mono/700.css';
+@import '@fontsource/ma-shan-zheng/400.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* 深色主题（默认） */
+  /* === 深色主题（默认）—— 富士胶片 × 拍立得 === */
   :root {
-    --bg-deep: #08080a;
-    --bg-primary: #0e0e12;
-    --bg-secondary: #16161c;
-    --bg-tertiary: #1e1e26;
-    --bg-hover: #262630;
-    --text-primary: #e8e4df;
-    --text-secondary: #8a8690;
-    --text-muted: #5a5660;
+    --bg-deep: #0c0b0a;
+    --bg-primary: #141210;
+    --bg-secondary: #1c1a17;
+    --bg-tertiary: #252220;
+    --bg-hover: #2e2b28;
+
+    --text-primary: #e8e0d4;
+    --text-secondary: #9a9288;
+    --text-muted: #6a6258;
+
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-film: rgba(212, 165, 116, 0.15);
   }
 
-  /* 浅色主题 */
+  /* === 浅色主题 === */
   .theme-light {
-    --bg-deep: #f5f5f7;
-    --bg-primary: #ffffff;
-    --bg-secondary: #f0f0f2;
-    --bg-tertiary: #e8e8ea;
-    --bg-hover: #dcdce0;
-    --text-primary: #1d1d1f;
-    --text-secondary: #6e6e73;
-    --text-muted: #aeaeb2;
+    --bg-deep: #f5f0ea;
+    --bg-primary: #faf7f2;
+    --bg-secondary: #f0ece4;
+    --bg-tertiary: #e8e2d8;
+    --bg-hover: #ddd6ca;
+
+    --text-primary: #1a1610;
+    --text-secondary: #6a6058;
+    --text-muted: #9a9088;
+
+    --border-subtle: rgba(0, 0, 0, 0.08);
+    --border-film: rgba(180, 133, 74, 0.2);
   }
 
   /* 浅色主题下的边框适配 */
@@ -42,8 +55,129 @@
     border-color: rgba(0, 0, 0, 0.1);
   }
 
+  /* 浅色主题下的阴影适配 */
+  .theme-light .shadow-black\/50 {
+    --tw-shadow-color: rgba(0, 0, 0, 0.12);
+  }
+  .theme-light .shadow-black\/40 {
+    --tw-shadow-color: rgba(0, 0, 0, 0.08);
+  }
+
+  /* 浅色主题下的背景透明度适配 */
+  .theme-light .bg-bg-primary\/95 {
+    background-color: rgba(250, 247, 242, 0.95);
+  }
+  .theme-light .bg-bg-primary\/80 {
+    background-color: rgba(250, 247, 242, 0.8);
+  }
+  .theme-light .bg-bg-deep\/95 {
+    background-color: rgba(245, 240, 234, 0.95);
+  }
+
+  /* 浅色主题下的白色元素适配 */
+  .theme-light .bg-white\/5 {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  .theme-light .bg-white\/10 {
+    background-color: rgba(0, 0, 0, 0.08);
+  }
+  .theme-light .text-white {
+    color: var(--text-primary);
+  }
+  .theme-light .text-white\/60 {
+    color: var(--text-secondary);
+  }
+
+  /* 浅色主题下的拍立得适配 */
+  .theme-light .shadow-polaroid {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.06) !important;
+  }
+  .theme-light .shadow-polaroid-hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15), 0 12px 40px rgba(0,0,0,0.1) !important;
+  }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--bg-hover); }
+}
+
+/* === 全局效果：胶片颗粒 === */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size: 512px;
+  mix-blend-mode: overlay;
+}
+
+/* === 漏光效果类 === */
+.light-leak {
+  position: relative;
+  overflow: hidden;
+}
+.light-leak::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 60%; height: 100%;
+  background: linear-gradient(135deg, transparent 30%, rgba(192,57,43,0.04) 60%, rgba(212,165,116,0.06) 80%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* === Classic Chrome 胶片模拟滤镜 === */
+.film-classic-chrome {
+  filter: contrast(1.05) saturate(0.85) brightness(1.02) sepia(0.08);
+}
+.film-provia {
+  filter: contrast(1.0) saturate(1.0) brightness(1.0) sepia(0);
+}
+.film-velvia {
+  filter: contrast(1.15) saturate(1.3) brightness(0.98) sepia(0);
+}
+.film-astia {
+  filter: contrast(0.95) saturate(0.9) brightness(1.05) sepia(0.03);
+}
+.film-classic-neg {
+  filter: contrast(1.0) saturate(0.8) brightness(1.05) sepia(0.12);
+}
+.film-eterna {
+  filter: contrast(0.9) saturate(0.75) brightness(1.08) sepia(0.05);
+}
+.film-mono {
+  filter: grayscale(1) contrast(1.1) brightness(1.0);
+}
+.film-sepia {
+  filter: sepia(0.8) contrast(1.05) saturate(0.6);
+}
+
+/* === 吐片动画 === */
+@keyframes polaroid-eject {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-polaroid-eject {
+  animation: polaroid-eject 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* === 通用动画 === */
+@keyframes slide-down {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.2s ease-out;
 }

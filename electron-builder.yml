@@ -1,5 +1,5 @@
-appId: com.image-master.app
-productName: Image Master
+appId: com.glint.app
+productName: Glint
 directories:
   buildResources: build
 files:

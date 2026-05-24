@@ -57,7 +57,6 @@ async function loadPhotos() {
   if (!window.electronAPI || !map) return
   loading.value = true
 
-  // 清除旧的标记簇
   if (currentCluster) {
     map.removeLayer(currentCluster)
     currentCluster = null
@@ -82,20 +81,19 @@ async function loadPhotos() {
       const dateStr = photo.shot_at ? new Date(photo.shot_at).toLocaleDateString('zh-CN') : ''
       marker.bindPopup(`
         <div style="min-width:180px">
-          <div style="width:100%;height:120px;background:#1a1a1a;border-radius:4px;margin-bottom:8px;display:flex;align-items:center;justify-content:center;overflow:hidden">
+          <div style="width:100%;height:120px;background:#252220;border-radius:4px;margin-bottom:8px;display:flex;align-items:center;justify-content:center;overflow:hidden">
             <img src="" data-photo-id="${photo.id}" style="max-width:100%;max-height:100%;object-fit:contain" alt="${escapeHtml(photo.file_name)}" />
           </div>
           <div style="font-weight:500;margin-bottom:4px;font-size:13px">${escapeHtml(photo.file_name)}</div>
-          ${photo.camera_model ? `<div style="font-size:11px;color:#999">${escapeHtml(photo.camera_model)}</div>` : ''}
-          ${dateStr ? `<div style="font-size:11px;color:#999">${escapeHtml(dateStr)}</div>` : ''}
+          ${photo.camera_model ? `<div style="font-size:11px;color:#9a9288">${escapeHtml(photo.camera_model)}</div>` : ''}
+          ${dateStr ? `<div style="font-size:11px;color:#9a9288">${escapeHtml(dateStr)}</div>` : ''}
           <div style="margin-top:8px;display:flex;gap:6px">
-            <button onclick="window.__mapShowInFolder('${escapeHtml(photo.file_path)}')" style="padding:3px 8px;font-size:11px;background:#d4a574;color:#000;border:none;border-radius:4px;cursor:pointer">
+            <button onclick="window.__mapShowInFolder('${escapeHtml(photo.file_path)}')" style="padding:3px 8px;font-size:11px;background:#c0392b;color:#fff;border:none;border-radius:4px;cursor:pointer">
               ${t('map.showInFolder')}
             </button>
           </div>
         </div>
       `)
-      // popup 打开时加载缩略图
       marker.on('popupopen', async () => {
         const el = document.querySelector(`[data-photo-id="${photo.id}"]`) as HTMLImageElement
         if (el && window.electronAPI) {
@@ -120,7 +118,6 @@ async function loadPhotos() {
   }
 }
 
-// 全局函数供 popup 按钮调用
 if (typeof window !== 'undefined') {
   (window as any).__mapShowInFolder = (filePath: string) => {
     window.electronAPI?.photos.showInFolder(filePath)
@@ -134,19 +131,19 @@ function applyFilter() {
 
 <template>
   <div class="flex flex-col h-full relative">
-    <div class="absolute top-4 left-4 z-[1000] bg-bg-primary/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/5 flex items-center gap-3">
+    <div class="absolute top-4 left-4 z-[1000] bg-bg-primary/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-border-subtle flex items-center gap-3">
       <span class="text-xs text-text-muted">
         <span v-if="loading">{{ $t('map.loading') }}</span>
         <span v-else>{{ $t('map.photosWithGps', { count: photoCount }) }}</span>
       </span>
-      <div class="w-px h-4 bg-white/10"></div>
+      <div class="w-px h-4 bg-border-subtle"></div>
       <input v-model="dateFrom" type="date" :placeholder="$t('map.dateFrom')"
-             class="bg-bg-tertiary border border-white/5 rounded px-2 py-1 text-xs text-text-primary outline-none w-32" />
+             class="bg-bg-tertiary border border-border-subtle rounded px-2 py-1 text-xs text-text-primary outline-none w-32" />
       <span class="text-xs text-text-muted">-</span>
       <input v-model="dateTo" type="date" :placeholder="$t('map.dateTo')"
-             class="bg-bg-tertiary border border-white/5 rounded px-2 py-1 text-xs text-text-primary outline-none w-32" />
+             class="bg-bg-tertiary border border-border-subtle rounded px-2 py-1 text-xs text-text-primary outline-none w-32" />
       <button @click="applyFilter"
-              class="px-2.5 py-1 text-xs rounded bg-accent/10 text-accent hover:bg-accent/20 transition-colors">
+              class="px-2.5 py-1 text-xs rounded bg-fuji-warm/10 text-fuji-warm hover:bg-fuji-warm/20 transition-colors">
         {{ $t('map.filter') }}
       </button>
     </div>
@@ -156,6 +153,6 @@ function applyFilter() {
 
 <style scoped>
 :deep(.leaflet-container) {
-  background: #08080a;
+  background: #0c0b0a;
 }
 </style>

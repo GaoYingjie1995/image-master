@@ -51,11 +51,29 @@ export const useAlbumsStore = defineStore('albums', () => {
     }
   }
 
+  // 乐观更新：先更新本地状态，再异步同步到后端
   async function setCollapsed(id: number, collapsed: boolean) {
+    // 立即更新本地状态
+    updateCollapsedInTree(albums.value, id, collapsed)
+    // 异步同步到后端，失败也不影响用户体验
     if (window.electronAPI) {
       await window.electronAPI.albums.setCollapsed(id, collapsed)
-      await fetchTree()
     }
+  }
+
+  function updateCollapsedInTree(tree: Album[], id: number, collapsed: boolean): boolean {
+    for (const album of tree) {
+      if (album.id === id) {
+        album.is_collapsed = collapsed ? 1 : 0
+        return true
+      }
+      if (album.children?.length) {
+        if (updateCollapsedInTree(album.children, id, collapsed)) {
+          return true
+        }
+      }
+    }
+    return false
   }
 
   async function setCover(albumId: number, photoId: number) {

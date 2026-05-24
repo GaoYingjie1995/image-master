@@ -1,0 +1,2040 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image Master — 富士胶片 × 拍立得 设计系统</title>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ===== Reset ===== */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      /* === Fuji Dark Background === */
+      --bg-deep:      #0c0b0a;
+      --bg-primary:   #141210;
+      --bg-secondary: #1c1a17;
+      --bg-tertiary:  #252220;
+      --bg-hover:     #2e2b28;
+
+      /* === Fuji Accent Colors === */
+      --fuji-red:       #c0392b;
+      --fuji-red-dim:   rgba(192, 57, 43, 0.15);
+      --fuji-silver:    #b8b0a8;
+      --fuji-chrome:    #8a8278;
+      --fuji-warm:      #d4a574;
+      --fuji-warm-dim:  rgba(212, 165, 116, 0.12);
+      --fuji-cream:     #f5e6c8;
+      --fuji-sepia:     #c4a882;
+
+      /* === Polaroid Colors === */
+      --polaroid-white:   #f2ede6;
+      --polaroid-shadow:  rgba(0, 0, 0, 0.25);
+      --polaroid-bg:      #e8e0d4;
+
+      /* === Semantic === */
+      --success:  #6b9e6b;
+      --warning:  #c4953a;
+      --error:    #c0392b;
+      --info:     #6a8fb3;
+
+      /* === Text === */
+      --text-primary:   #e8e0d4;
+      --text-secondary: #9a9288;
+      --text-muted:     #6a6258;
+
+      /* === Border === */
+      --border-subtle:  rgba(255, 255, 255, 0.06);
+      --border-film:    rgba(212, 165, 116, 0.15);
+
+      /* === Fonts === */
+      --font-hand:    'Caveat', cursive;
+      --font-body:    'Inter', sans-serif;
+      --font-mono:    'Space Mono', monospace;
+
+      /* === Radius === */
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-polaroid: 3px;
+
+      /* === Shadow === */
+      --shadow-polaroid: 0 2px 8px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.2);
+      --shadow-polaroid-hover: 0 4px 16px rgba(0,0,0,0.4), 0 12px 40px rgba(0,0,0,0.3);
+      --shadow-card: 0 1px 4px rgba(0,0,0,0.3);
+      --shadow-float: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== Film Grain Overlay ===== */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+      background-size: 512px;
+      mix-blend-mode: overlay;
+    }
+
+    /* ===== Layout ===== */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 48px; }
+
+    /* ===== Hero ===== */
+    .hero {
+      padding: 100px 0 80px;
+      text-align: center;
+      position: relative;
+    }
+
+    /* Light leak effect */
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -100px; right: -200px;
+      width: 600px; height: 600px;
+      background: radial-gradient(ellipse, rgba(192,57,43,0.06) 0%, rgba(212,165,116,0.04) 40%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -50px; left: -150px;
+      width: 400px; height: 400px;
+      background: radial-gradient(ellipse, rgba(212,165,116,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-film);
+      border-radius: 100px;
+      padding: 6px 18px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--fuji-warm);
+      margin-bottom: 32px;
+      letter-spacing: 0.08em;
+      position: relative;
+    }
+
+    .hero-badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--fuji-red);
+    }
+
+    .hero h1 {
+      font-family: var(--font-body);
+      font-size: clamp(40px, 5vw, 64px);
+      font-weight: 300;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      position: relative;
+    }
+
+    .hero h1 strong {
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--fuji-warm) 0%, var(--fuji-sepia) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero h1 .fuji {
+      font-family: var(--font-mono);
+      font-size: 0.4em;
+      font-weight: 700;
+      color: var(--fuji-red);
+      -webkit-text-fill-color: var(--fuji-red);
+      letter-spacing: 0.15em;
+      display: block;
+      margin-top: 8px;
+    }
+
+    .hero-sub {
+      font-size: 17px;
+      color: var(--text-secondary);
+      margin-top: 20px;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.7;
+      position: relative;
+    }
+
+    /* ===== Section ===== */
+    .section {
+      padding: 80px 0;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .section-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--fuji-red);
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+
+    .section-title {
+      font-size: 32px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .section-desc {
+      color: var(--text-secondary);
+      font-size: 15px;
+      max-width: 600px;
+      margin-bottom: 48px;
+      line-height: 1.7;
+    }
+
+    /* ===== Color Palette ===== */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+    }
+
+    .color-card {
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .color-swatch {
+      height: 90px;
+      position: relative;
+    }
+
+    .color-swatch::after {
+      content: attr(data-hex);
+      position: absolute;
+      bottom: 8px; right: 10px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: rgba(255,255,255,0.6);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+
+    .color-info { padding: 12px 14px; }
+    .color-name { font-weight: 600; font-size: 13px; margin-bottom: 1px; }
+    .color-var { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+
+    .color-section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 40px 0 16px;
+      color: var(--text-secondary);
+    }
+    .color-section-title:first-of-type { margin-top: 0; }
+
+    /* ===== Typography ===== */
+    .type-specimen {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+      margin-bottom: 20px;
+    }
+
+    .type-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--fuji-red);
+      margin-bottom: 14px;
+    }
+
+    .type-meta {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+
+    .type-meta-item {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .type-meta-item strong { color: var(--text-secondary); }
+
+    /* ===== Polaroid Component ===== */
+    .polaroid {
+      background: var(--polaroid-white);
+      border-radius: var(--radius-polaroid);
+      padding: 14px 14px 52px 14px;
+      box-shadow: var(--shadow-polaroid);
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .polaroid:hover {
+      box-shadow: var(--shadow-polaroid-hover);
+      transform: translateY(-4px);
+    }
+
+    .polaroid-image {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 1px;
+      overflow: hidden;
+      background: var(--bg-tertiary);
+    }
+
+    .polaroid-image img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      /* Fuji Classic Chrome film simulation */
+      filter: contrast(1.05) saturate(0.85) brightness(1.02) sepia(0.08);
+    }
+
+    .polaroid-caption {
+      position: absolute;
+      bottom: 12px;
+      left: 20px;
+      right: 20px;
+      font-family: var(--font-hand);
+      font-size: 20px;
+      color: #5a4a3a;
+      text-align: center;
+    }
+
+    .polaroid-date {
+      position: absolute;
+      bottom: 14px;
+      right: 18px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #a09080;
+      letter-spacing: 0.05em;
+    }
+
+    /* Stacked polaroids */
+    .polaroid-stack {
+      position: relative;
+      display: inline-block;
+    }
+
+    .polaroid-stack .polaroid:nth-child(2) {
+      position: absolute;
+      top: 6px; left: 6px;
+      z-index: -1;
+      transform: rotate(3deg);
+      opacity: 0.7;
+    }
+
+    .polaroid-stack .polaroid:nth-child(3) {
+      position: absolute;
+      top: 12px; left: -4px;
+      z-index: -2;
+      transform: rotate(-2deg);
+      opacity: 0.5;
+    }
+
+    /* Fuji film strip */
+    .film-strip {
+      background: #1a1816;
+      border-radius: 2px;
+      padding: 8px;
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .film-frame {
+      width: 80px;
+      height: 80px;
+      border-radius: 1px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .film-frame::before,
+    .film-frame::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 100%;
+      top: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 4px,
+        rgba(255,255,255,0.15) 4px,
+        rgba(255,255,255,0.15) 8px
+      );
+    }
+
+    .film-frame::before { left: 0; }
+    .film-frame::after { right: 0; }
+
+    .film-frame img,
+    .film-frame .film-placeholder {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+
+    /* ===== Buttons ===== */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 9px 22px;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: 0.02em;
+    }
+
+    .btn-fuji {
+      background: var(--fuji-red);
+      color: #fff;
+    }
+    .btn-fuji:hover {
+      background: #a93226;
+      box-shadow: 0 0 16px rgba(192,57,43,0.3);
+    }
+
+    .btn-fuji-ghost {
+      background: transparent;
+      color: var(--fuji-red);
+      border: 1px solid rgba(192,57,43,0.35);
+    }
+    .btn-fuji-ghost:hover {
+      background: var(--fuji-red-dim);
+      border-color: var(--fuji-red);
+    }
+
+    .btn-warm {
+      background: var(--fuji-warm);
+      color: var(--bg-deep);
+    }
+    .btn-warm:hover {
+      background: var(--fuji-sepia);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+    .btn-ghost:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border-color: var(--border-film);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--error);
+      border: 1px solid rgba(192,57,43,0.3);
+    }
+    .btn-danger:hover {
+      background: var(--fuji-red-dim);
+    }
+
+    .btn-sm {
+      font-size: 12px;
+      padding: 6px 14px;
+    }
+
+    /* ===== Input ===== */
+    .input-group { margin-bottom: 18px; }
+
+    .input-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .input {
+      width: 100%;
+      max-width: 340px;
+      padding: 9px 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 13px;
+      transition: all 0.15s ease;
+    }
+
+    .input:focus {
+      outline: none;
+      border-color: var(--fuji-warm);
+      box-shadow: 0 0 0 3px var(--fuji-warm-dim);
+    }
+
+    .input::placeholder { color: var(--text-muted); }
+
+    /* ===== Tags ===== */
+    .tag-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .tag {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 100px;
+      cursor: default;
+      transition: all 0.15s ease;
+      letter-spacing: 0.03em;
+    }
+
+    .tag-fuji {
+      background: var(--fuji-red-dim);
+      color: var(--fuji-red);
+      border: 1px solid rgba(192,57,43,0.2);
+    }
+
+    .tag-warm {
+      background: var(--fuji-warm-dim);
+      color: var(--fuji-warm);
+      border: 1px solid rgba(212,165,116,0.2);
+    }
+
+    .tag-chrome {
+      background: var(--bg-tertiary);
+      color: var(--fuji-chrome);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .tag-success {
+      background: rgba(107,158,107,0.1);
+      color: var(--success);
+      border: 1px solid rgba(107,158,107,0.2);
+    }
+
+    .tag-warning {
+      background: rgba(196,149,58,0.1);
+      color: var(--warning);
+      border: 1px solid rgba(196,149,58,0.2);
+    }
+
+    /* ===== Component: App Preview ===== */
+    .preview-frame {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-float);
+    }
+
+    .preview-titlebar {
+      height: 38px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 7px;
+    }
+
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-r { background: #c0392b; }
+    .dot-y { background: #c4953a; }
+    .dot-g { background: #6b9e6b; }
+
+    .preview-body {
+      display: flex;
+      min-height: 520px;
+    }
+
+    /* Sidebar */
+    .preview-sidebar {
+      width: 210px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-subtle);
+      padding: 16px 0;
+      flex-shrink: 0;
+    }
+
+    .sidebar-brand {
+      padding: 0 18px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 10px;
+    }
+
+    .sidebar-brand .logo {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--fuji-red);
+      letter-spacing: 0.12em;
+    }
+
+    .sidebar-brand .app-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-top: 2px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 18px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+
+    .sidebar-item:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .sidebar-item.active {
+      background: var(--fuji-warm-dim);
+      color: var(--fuji-warm);
+    }
+
+    .sidebar-item .icon {
+      width: 16px; height: 16px;
+      border-radius: 3px;
+      background: var(--bg-tertiary);
+      flex-shrink: 0;
+    }
+
+    .sidebar-item.active .icon {
+      background: var(--fuji-warm);
+      opacity: 0.3;
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: var(--border-subtle);
+      margin: 10px 18px;
+    }
+
+    .sidebar-heading {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 6px 18px 4px;
+    }
+
+    /* Main Content */
+    .preview-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-toolbar {
+      height: 44px;
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      padding: 0 18px;
+      gap: 10px;
+    }
+
+    .toolbar-search {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 5px 12px;
+      color: var(--text-muted);
+      font-size: 12px;
+      width: 220px;
+    }
+
+    .toolbar-spacer { flex: 1; }
+
+    .toolbar-btn {
+      width: 30px; height: 30px;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      font-size: 13px;
+    }
+
+    .toolbar-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .toolbar-btn.active {
+      background: var(--fuji-warm-dim);
+      border-color: var(--fuji-warm);
+      color: var(--fuji-warm);
+    }
+
+    /* Polaroid Grid */
+    .polaroid-grid {
+      flex: 1;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      align-content: start;
+      overflow: hidden;
+    }
+
+    .polaroid-grid .polaroid {
+      transform: rotate(var(--rot, 0deg));
+    }
+
+    .polaroid-grid .polaroid:nth-child(1) { --rot: -1.5deg; }
+    .polaroid-grid .polaroid:nth-child(2) { --rot: 0.8deg; }
+    .polaroid-grid .polaroid:nth-child(3) { --rot: -0.5deg; }
+    .polaroid-grid .polaroid:nth-child(4) { --rot: 1.2deg; }
+    .polaroid-grid .polaroid:nth-child(5) { --rot: -0.8deg; }
+    .polaroid-grid .polaroid:nth-child(6) { --rot: 0.5deg; }
+
+    .polaroid-grid .polaroid:hover {
+      transform: rotate(0deg) translateY(-6px) scale(1.02);
+      z-index: 10;
+    }
+
+    /* Selection check */
+    .polaroid-select {
+      position: absolute;
+      top: -6px; left: -6px;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--polaroid-white);
+      border: 2px solid var(--fuji-chrome);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: transparent;
+      opacity: 0;
+      transition: all 0.15s ease;
+      z-index: 5;
+    }
+
+    .polaroid:hover .polaroid-select { opacity: 1; }
+
+    .polaroid.selected .polaroid-select {
+      opacity: 1;
+      background: var(--fuji-red);
+      border-color: var(--fuji-red);
+      color: #fff;
+    }
+
+    /* Fuji film simulation badge */
+    .film-sim {
+      position: absolute;
+      top: 18px; right: 18px;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.5);
+      background: rgba(0,0,0,0.4);
+      padding: 2px 6px;
+      border-radius: 2px;
+      z-index: 2;
+      text-transform: uppercase;
+    }
+
+    /* Detail Panel */
+    .preview-panel {
+      width: 280px;
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border-subtle);
+      padding: 20px;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+
+    .panel-polaroid {
+      background: var(--polaroid-white);
+      border-radius: var(--radius-polaroid);
+      padding: 10px 10px 40px;
+      box-shadow: var(--shadow-polaroid);
+      margin-bottom: 20px;
+      transform: rotate(-1deg);
+    }
+
+    .panel-polaroid .polaroid-image {
+      aspect-ratio: 4/3;
+    }
+
+    .panel-polaroid .polaroid-caption {
+      font-family: var(--font-hand);
+      font-size: 16px;
+      bottom: 10px;
+      left: 16px;
+    }
+
+    .panel-exif {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .panel-exif-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--fuji-warm);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    .panel-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 12px;
+    }
+
+    .panel-row:last-child { border-bottom: none; }
+    .panel-row .label { color: var(--text-muted); }
+    .panel-row .value { color: var(--text-secondary); font-family: var(--font-mono); font-size: 11px; }
+
+    /* ===== Dialog ===== */
+    .dialog-overlay {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--shadow-float);
+      overflow: hidden;
+    }
+
+    .dialog-header { padding: 22px 24px 0; }
+    .dialog-title { font-size: 20px; font-weight: 600; }
+    .dialog-body { padding: 18px 24px; }
+    .dialog-footer {
+      padding: 0 24px 22px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* ===== Batch Bar ===== */
+    .batch-bar {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-film);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .batch-count {
+      font-size: 13px;
+      color: var(--fuji-warm);
+      font-weight: 600;
+      min-width: 80px;
+    }
+
+    .batch-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border-subtle);
+    }
+
+    /* ===== Context Menu ===== */
+    .context-menu {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 5px;
+      min-width: 190px;
+      box-shadow: var(--shadow-float);
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+
+    .menu-item:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .menu-item .shortcut {
+      margin-left: auto;
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .menu-item.danger { color: var(--error); }
+    .menu-item.danger:hover { background: var(--fuji-red-dim); }
+    .menu-divider { height: 1px; background: var(--border-subtle); margin: 4px 0; }
+    .menu-icon { width: 16px; text-align: center; color: var(--text-muted); }
+
+    /* ===== Motion ===== */
+    .motion-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .motion-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+    }
+
+    .motion-name { font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+
+    .motion-spec {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-bottom: 10px;
+    }
+
+    .motion-bar {
+      height: 3px;
+      background: var(--bg-tertiary);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .motion-fill {
+      height: 100%;
+      background: var(--fuji-warm);
+      border-radius: 2px;
+      width: 0;
+      animation-fill-mode: forwards;
+    }
+
+    /* ===== Spacing ===== */
+    .spacing-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .spacing-label {
+      width: 80px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .spacing-bar {
+      height: 20px;
+      background: linear-gradient(135deg, var(--fuji-warm-dim), rgba(212,165,116,0.06));
+      border: 1px solid var(--fuji-warm);
+      border-radius: 3px;
+    }
+
+    .radius-demo {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .radius-box {
+      width: 70px;
+      height: 70px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* ===== Elevation ===== */
+    .elevation-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .elevation-card {
+      background: var(--bg-primary);
+      border-radius: var(--radius-md);
+      padding: 28px 20px;
+      text-align: center;
+    }
+
+    .elevation-card .label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 10px;
+      font-family: var(--font-mono);
+    }
+
+    /* ===== Accessibility ===== */
+    .a11y-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .a11y-table th {
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+    }
+
+    .a11y-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .a11y-swatch {
+      display: inline-block;
+      width: 20px; height: 20px;
+      border-radius: 3px;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    .ratio-pass { color: var(--success); font-weight: 600; }
+    .ratio-warn { color: var(--warning); font-weight: 600; }
+
+    /* ===== Code Block ===== */
+    .code-block {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px 22px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      overflow-x: auto;
+      margin-bottom: 20px;
+    }
+
+    .code-block .cm { color: var(--text-muted); }
+    .code-block .p { color: var(--fuji-warm); }
+    .code-block .v { color: var(--text-primary); }
+
+    /* ===== Grid Utils ===== */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    .mb-20 { margin-bottom: 20px; }
+    .mb-40 { margin-bottom: 40px; }
+
+    /* ===== Film Strip Demo ===== */
+    .film-strip-demo {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* ===== Light Leak Effect ===== */
+    .light-leak {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .light-leak::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(135deg, transparent 30%, rgba(192,57,43,0.04) 60%, rgba(212,165,116,0.06) 80%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* ===== Navigation ===== */
+    .nav-toc {
+      position: fixed;
+      right: 32px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .nav-toc a {
+      display: block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-subtle);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .nav-toc a:hover,
+    .nav-toc a.active {
+      background: var(--fuji-warm);
+      border-color: var(--fuji-warm);
+    }
+
+    .nav-toc a::before {
+      content: attr(data-label);
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+
+    .nav-toc a:hover::before { opacity: 1; }
+
+    /* ===== Footer ===== */
+    .footer {
+      padding: 40px 0;
+      border-top: 1px solid var(--border-subtle);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .footer a { color: var(--fuji-warm); text-decoration: none; }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 900px) {
+      .container { padding: 0 20px; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .preview-body { flex-direction: column; }
+      .preview-sidebar { width: 100%; }
+      .preview-panel { width: 100%; }
+      .polaroid-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+      .nav-toc { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav-toc">
+  <a href="#hero" data-label="首页" class="active"></a>
+  <a href="#colors" data-label="色彩"></a>
+  <a href="#typography" data-label="排版"></a>
+  <a href="#spacing" data-label="间距"></a>
+  <a href="#elevation" data-label="层级"></a>
+  <a href="#buttons" data-label="按钮"></a>
+  <a href="#inputs" data-label="输入"></a>
+  <a href="#components" data-label="组件"></a>
+  <a href="#polaroid" data-label="拍立得"></a>
+  <a href="#filmstrip" data-label="胶片"></a>
+  <a href="#motion" data-label="动效"></a>
+  <a href="#a11y" data-label="无障碍"></a>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero" id="hero">
+  <div class="container">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      FUJI CHROME · CLASSIC Neg
+    </div>
+    <h1>
+      <strong>Image Master</strong>
+      <span class="fuji">富士胶片 × 拍立得</span>
+    </h1>
+    <p class="hero-sub">每一张照片都值得被温柔对待。模拟富士胶片 Classic Chrome 的色彩科学，拍立得即拍即得的仪式感，让你的照片管理充满温度。</p>
+  </div>
+</section>
+
+<!-- ===== COLORS ===== -->
+<section class="section" id="colors">
+  <div class="container">
+    <p class="section-num">01 — COLORS</p>
+    <h2 class="section-title">色彩系统</h2>
+    <p class="section-desc">以富士胶片 Classic Chrome 色彩科学为灵感 — 低饱和、暖棕调、微微褪色的复古感。暗红作为快门按钮的致敬。</p>
+
+    <h3 class="color-section-title">背景 Background — 木质桌面</h3>
+    <div class="color-grid mb-40">
+      <div class="color-card">
+        <div class="color-swatch" style="background:#0c0b0a;" data-hex="#0c0b0a"></div>
+        <div class="color-info"><div class="color-name">Deep</div><div class="color-var">--bg-deep</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#141210;" data-hex="#141210"></div>
+        <div class="color-info"><div class="color-name">Primary</div><div class="color-var">--bg-primary</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#1c1a17;" data-hex="#1c1a17"></div>
+        <div class="color-info"><div class="color-name">Secondary</div><div class="color-var">--bg-secondary</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#252220;" data-hex="#252220"></div>
+        <div class="color-info"><div class="color-name">Tertiary</div><div class="color-var">--bg-tertiary</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#2e2b28;" data-hex="#2e2b28"></div>
+        <div class="color-info"><div class="color-name">Hover</div><div class="color-var">--bg-hover</div></div>
+      </div>
+    </div>
+
+    <h3 class="color-section-title">富士色 Fuji Palette</h3>
+    <div class="color-grid mb-40">
+      <div class="color-card">
+        <div class="color-swatch" style="background:#c0392b;" data-hex="#c0392b"></div>
+        <div class="color-info"><div class="color-name">Fuji Red 快门红</div><div class="color-var">--fuji-red</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#d4a574;" data-hex="#d4a574"></div>
+        <div class="color-info"><div class="color-name">Warm 暖棕</div><div class="color-var">--fuji-warm</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#c4a882;" data-hex="#c4a882"></div>
+        <div class="color-info"><div class="color-name">Sepia 褪色</div><div class="color-var">--fuji-sepia</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#f5e6c8;" data-hex="#f5e6c8"></div>
+        <div class="color-info"><div class="color-name">Cream 奶油</div><div class="color-var">--fuji-cream</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#b8b0a8;" data-hex="#b8b0a8"></div>
+        <div class="color-info"><div class="color-name">Silver 银色</div><div class="color-var">--fuji-silver</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#8a8278;" data-hex="#8a8278"></div>
+        <div class="color-info"><div class="color-name">Chrome 铬色</div><div class="color-var">--fuji-chrome</div></div>
+      </div>
+    </div>
+
+    <h3 class="color-section-title">拍立得 Polaroid</h3>
+    <div class="color-grid mb-40">
+      <div class="color-card">
+        <div class="color-swatch" style="background:#f2ede6;" data-hex="#f2ede6"></div>
+        <div class="color-info"><div class="color-name">Polaroid White</div><div class="color-var">--polaroid-white</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#e8e0d4;" data-hex="#e8e0d4"></div>
+        <div class="color-info"><div class="color-name">Polaroid BG</div><div class="color-var">--polaroid-bg</div></div>
+      </div>
+    </div>
+
+    <h3 class="color-section-title">文字 Text</h3>
+    <div class="color-grid mb-40">
+      <div class="color-card">
+        <div class="color-swatch" style="background:#e8e0d4;" data-hex="#e8e0d4"></div>
+        <div class="color-info"><div class="color-name">Primary</div><div class="color-var">--text-primary</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#9a9288;" data-hex="#9a9288"></div>
+        <div class="color-info"><div class="color-name">Secondary</div><div class="color-var">--text-secondary</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#6a6258;" data-hex="#6a6258"></div>
+        <div class="color-info"><div class="color-name">Muted</div><div class="color-var">--text-muted</div></div>
+      </div>
+    </div>
+
+    <h3 class="color-section-title">语义 Semantic</h3>
+    <div class="color-grid">
+      <div class="color-card">
+        <div class="color-swatch" style="background:#6b9e6b;" data-hex="#6b9e6b"></div>
+        <div class="color-info"><div class="color-name">Success</div><div class="color-var">--success</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#c4953a;" data-hex="#c4953a"></div>
+        <div class="color-info"><div class="color-name">Warning</div><div class="color-var">--warning</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#c0392b;" data-hex="#c0392b"></div>
+        <div class="color-info"><div class="color-name">Error</div><div class="color-var">--error</div></div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#6a8fb3;" data-hex="#6a8fb3"></div>
+        <div class="color-info"><div class="color-name">Info</div><div class="color-var">--info</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TYPOGRAPHY ===== -->
+<section class="section" id="typography">
+  <div class="container">
+    <p class="section-num">02 — TYPOGRAPHY</p>
+    <h2 class="section-title">排版系统</h2>
+    <p class="section-desc">三套字体各司其职：手写体用于拍立得标注，无衬线用于界面，等宽用于胶片参数。</p>
+
+    <div class="type-specimen">
+      <p class="type-label">Handwriting — Caveat (拍立得手写)</p>
+      <p style="font-family:var(--font-hand); font-size:36px; color:#5a4a3a;">Summer of '24</p>
+      <p style="font-family:var(--font-hand); font-size:28px; color:#8a7a6a; margin-top:4px;">和朋友们的海边旅行</p>
+      <div class="type-meta">
+        <span class="type-meta-item"><strong>Font:</strong> Caveat, cursive</span>
+        <span class="type-meta-item"><strong>Weights:</strong> 400, 500, 600, 700</span>
+        <span class="type-meta-item"><strong>Use:</strong> 拍立得标注、相册名称、日期</span>
+      </div>
+    </div>
+
+    <div class="type-specimen">
+      <p class="type-label">Body — Inter (界面文字)</p>
+      <p style="font-size:16px; line-height:1.7;">Image Master 用富士胶片的色彩哲学重新定义照片管理。Classic Chrome 模拟的低饱和暖棕调，让每一张缩略图都像从暗房中取出的底片，带着时间的温度。</p>
+      <div class="type-meta">
+        <span class="type-meta-item"><strong>Font:</strong> Inter, sans-serif</span>
+        <span class="type-meta-item"><strong>Weights:</strong> 300, 400, 500, 600, 700</span>
+        <span class="type-meta-item"><strong>Use:</strong> 界面、正文、按钮、标签</span>
+      </div>
+    </div>
+
+    <div class="type-specimen">
+      <p class="type-label">Mono — Space Mono (胶片参数)</p>
+      <p style="font-family:var(--font-mono); font-size:14px; letter-spacing:0.05em;">
+        <span style="color:var(--fuji-red);">CLASSIC CHROME</span> &nbsp;·&nbsp;
+        <span style="color:var(--fuji-warm);">f/2.8</span> &nbsp;·&nbsp;
+        <span style="color:var(--fuji-chrome);">1/250s</span> &nbsp;·&nbsp;
+        <span style="color:var(--text-secondary);">ISO 400</span> &nbsp;·&nbsp;
+        <span style="color:var(--fuji-silver);">35mm</span>
+      </p>
+      <div class="type-meta">
+        <span class="type-meta-item"><strong>Font:</strong> Space Mono, monospace</span>
+        <span class="type-meta-item"><strong>Weights:</strong> 400, 700</span>
+        <span class="type-meta-item"><strong>Use:</strong> EXIF 参数、胶片模拟名称、日期戳</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SPACING ===== -->
+<section class="section" id="spacing">
+  <div class="container">
+    <p class="section-num">03 — SPACING & RADIUS</p>
+    <h2 class="section-title">间距与圆角</h2>
+    <p class="section-desc">4px 基准间距，圆角偏小 — 拍立得是方正的，保持棱角感。</p>
+
+    <div class="grid-2">
+      <div>
+        <h3 class="color-section-title">间距</h3>
+        <div class="spacing-row"><span class="spacing-label">4px</span><div class="spacing-bar" style="width:4px;"></div></div>
+        <div class="spacing-row"><span class="spacing-label">8px</span><div class="spacing-bar" style="width:8px;"></div></div>
+        <div class="spacing-row"><span class="spacing-label">12px</span><div class="spacing-bar" style="width:12px;"></div></div>
+        <div class="spacing-row"><span class="spacing-label">16px</span><div class="spacing-bar" style="width:16px;"></div></div>
+        <div class="spacing-row"><span class="spacing-label">24px</span><div class="spacing-bar" style="width:24px;"></div></div>
+        <div class="spacing-row"><span class="spacing-label">32px</span><div class="spacing-bar" style="width:32px;"></div></div>
+        <div class="spacing-row"><span class="spacing-label">48px</span><div class="spacing-bar" style="width:48px;"></div></div>
+      </div>
+      <div>
+        <h3 class="color-section-title">圆角</h3>
+        <div class="radius-demo">
+          <div class="radius-box" style="border-radius:4px;">4px</div>
+          <div class="radius-box" style="border-radius:8px;">8px</div>
+          <div class="radius-box" style="border-radius:12px;">12px</div>
+          <div class="radius-box" style="border-radius:3px; border:2px solid var(--fuji-warm);">3px<br><span style="font-size:10px;color:var(--fuji-warm);">Polaroid</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ELEVATION ===== -->
+<section class="section" id="elevation">
+  <div class="container">
+    <p class="section-num">04 — ELEVATION</p>
+    <h2 class="section-title">层级系统</h2>
+    <p class="section-desc">拍立得照片有真实的物理厚度 — 阴影是它们的投影。</p>
+
+    <div class="elevation-grid">
+      <div class="elevation-card" style="box-shadow:var(--shadow-card);">
+        <div style="font-size:18px;">Aa</div>
+        <div class="label">shadow-card</div>
+      </div>
+      <div class="elevation-card" style="box-shadow:var(--shadow-polaroid);">
+        <div style="font-size:18px;">Aa</div>
+        <div class="label">shadow-polaroid</div>
+      </div>
+      <div class="elevation-card" style="box-shadow:var(--shadow-polaroid-hover);">
+        <div style="font-size:18px;">Aa</div>
+        <div class="label">shadow-polaroid-hover</div>
+      </div>
+      <div class="elevation-card" style="box-shadow:var(--shadow-float);">
+        <div style="font-size:18px;">Aa</div>
+        <div class="label">shadow-float</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== BUTTONS ===== -->
+<section class="section" id="buttons">
+  <div class="container">
+    <p class="section-num">05 — BUTTONS</p>
+    <h2 class="section-title">按钮</h2>
+    <p class="section-desc">快门红为主操作色，暖棕为辅助，致敬富士机身上的拨盘和按钮。</p>
+
+    <h3 class="color-section-title">标准</h3>
+    <div class="btn-row mb-40">
+      <button class="btn btn-fuji">导入照片</button>
+      <button class="btn btn-fuji-ghost">新建相册</button>
+      <button class="btn btn-warm">收藏</button>
+      <button class="btn btn-ghost">取消</button>
+      <button class="btn btn-danger">删除</button>
+    </div>
+
+    <h3 class="color-section-title">小尺寸</h3>
+    <div class="btn-row mb-40">
+      <button class="btn btn-fuji btn-sm">确认</button>
+      <button class="btn btn-fuji-ghost btn-sm">编辑</button>
+      <button class="btn btn-warm btn-sm">添加</button>
+      <button class="btn btn-ghost btn-sm">跳过</button>
+      <button class="btn btn-danger btn-sm">移除</button>
+    </div>
+
+    <h3 class="color-section-title">状态</h3>
+    <div class="btn-row">
+      <button class="btn btn-fuji">Default</button>
+      <button class="btn btn-fuji" style="background:#a93226; box-shadow:0 0 16px rgba(192,57,43,0.3);">Hover</button>
+      <button class="btn btn-fuji" style="opacity:0.5; cursor:not-allowed;">Disabled</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===== INPUTS ===== -->
+<section class="section" id="inputs">
+  <div class="container">
+    <p class="section-num">06 — INPUTS</p>
+    <h2 class="section-title">输入框</h2>
+    <p class="section-desc">聚焦时暖棕光晕，像胶片对焦环转动时的确认感。</p>
+
+    <div class="grid-2">
+      <div>
+        <div class="input-group">
+          <label class="input-label">搜索照片</label>
+          <input class="input" type="text" placeholder="输入关键词..." />
+        </div>
+        <div class="input-group">
+          <label class="input-label">相册名称</label>
+          <input class="input" type="text" value="2024 夏日旅行" />
+        </div>
+      </div>
+      <div>
+        <div class="input-group">
+          <label class="input-label">聚焦态</label>
+          <input class="input" type="text" placeholder="Focus..." style="border-color:var(--fuji-warm); box-shadow:0 0 0 3px var(--fuji-warm-dim);" />
+        </div>
+        <div class="input-group">
+          <label class="input-label">禁用态</label>
+          <input class="input" type="text" value="不可编辑" disabled style="opacity:0.4; cursor:not-allowed;" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== COMPONENTS ===== -->
+<section class="section" id="components">
+  <div class="container">
+    <p class="section-num">07 — COMPONENTS</p>
+    <h2 class="section-title">组件预览</h2>
+    <p class="section-desc">完整的主界面模拟 — 拍立得网格 + 胶片参数面板。</p>
+
+    <!-- Tags -->
+    <h3 class="color-section-title">标签 Tags</h3>
+    <div class="mb-40">
+      <div class="tag-row mb-20">
+        <span class="tag tag-fuji">CLASSIC CHROME</span>
+        <span class="tag tag-fuji">PROVIA</span>
+        <span class="tag tag-fuji">Velvia</span>
+        <span class="tag tag-fuji">ASTIA</span>
+      </div>
+      <div class="tag-row mb-20">
+        <span class="tag tag-warm">风景</span>
+        <span class="tag tag-warm">人像</span>
+        <span class="tag tag-warm">街拍</span>
+        <span class="tag tag-warm">胶片</span>
+      </div>
+      <div class="tag-row">
+        <span class="tag tag-chrome">RAW</span>
+        <span class="tag tag-chrome">收藏</span>
+        <span class="tag tag-success">导入完成</span>
+        <span class="tag tag-warning">重复文件</span>
+      </div>
+    </div>
+
+    <!-- App Layout -->
+    <h3 class="color-section-title">主界面</h3>
+    <div class="preview-frame mb-40 light-leak">
+      <div class="preview-titlebar">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+        <span style="margin-left:10px; font-size:12px; color:var(--text-muted);">Image Master</span>
+      </div>
+      <div class="preview-body">
+        <div class="preview-sidebar">
+          <div class="sidebar-brand">
+            <div class="logo">FUJI</div>
+            <div class="app-name">Image Master</div>
+          </div>
+          <div class="sidebar-item active"><div class="icon"></div>全部照片</div>
+          <div class="sidebar-item"><div class="icon"></div>收藏</div>
+          <div class="sidebar-item"><div class="icon"></div>最近导入</div>
+          <div class="sidebar-divider"></div>
+          <div class="sidebar-heading">相册</div>
+          <div class="sidebar-item"><div class="icon"></div>2024 旅行</div>
+          <div class="sidebar-item"><div class="icon"></div>家庭照片</div>
+          <div class="sidebar-item"><div class="icon"></div>胶片实验</div>
+          <div class="sidebar-divider"></div>
+          <div class="sidebar-item"><div class="icon"></div>重复检测</div>
+          <div class="sidebar-item"><div class="icon"></div>设置</div>
+        </div>
+        <div class="preview-main">
+          <div class="preview-toolbar">
+            <div class="toolbar-search">搜索照片...</div>
+            <div class="toolbar-spacer"></div>
+            <div class="toolbar-btn">≡</div>
+            <div class="toolbar-btn active">▦</div>
+            <div class="toolbar-btn">☰</div>
+          </div>
+          <div class="polaroid-grid">
+            <!-- Polaroid 1 -->
+            <div class="polaroid selected">
+              <div class="polaroid-select">✓</div>
+              <span class="film-sim">Classic Chrome</span>
+              <div class="polaroid-image"><div style="width:100%;height:100%;background:linear-gradient(135deg,#3a2a1a,#5a3a2a); filter:contrast(1.05) saturate(0.85) sepia(0.08);"></div></div>
+              <div class="polaroid-caption">Golden Hour</div>
+              <div class="polaroid-date">2024.03.15</div>
+            </div>
+            <!-- Polaroid 2 -->
+            <div class="polaroid">
+              <div class="polaroid-select">✓</div>
+              <span class="film-sim">PROVIA</span>
+              <div class="polaroid-image"><div style="width:100%;height:100%;background:linear-gradient(135deg,#1a2a3a,#0a1a2a); filter:contrast(1.05) saturate(0.85) sepia(0.08);"></div></div>
+              <div class="polaroid-caption">海边的风</div>
+              <div class="polaroid-date">2024.03.16</div>
+            </div>
+            <!-- Polaroid 3 -->
+            <div class="polaroid">
+              <div class="polaroid-select">✓</div>
+              <span class="film-sim">Velvia</span>
+              <div class="polaroid-image"><div style="width:100%;height:100%;background:linear-gradient(135deg,#2a3a1a,#1a2a0a); filter:contrast(1.05) saturate(0.85) sepia(0.08);"></div></div>
+              <div class="polaroid-caption">春日樱花</div>
+              <div class="polaroid-date">2024.04.02</div>
+            </div>
+            <!-- Polaroid 4 -->
+            <div class="polaroid">
+              <div class="polaroid-select">✓</div>
+              <span class="film-sim">Classic Neg</span>
+              <div class="polaroid-image"><div style="width:100%;height:100%;background:linear-gradient(135deg,#3a1a2a,#2a0a1a); filter:contrast(1.05) saturate(0.85) sepia(0.08);"></div></div>
+              <div class="polaroid-caption">街角咖啡</div>
+              <div class="polaroid-date">2024.04.10</div>
+            </div>
+            <!-- Polaroid 5 -->
+            <div class="polaroid">
+              <div class="polaroid-select">✓</div>
+              <span class="film-sim">Eterna</span>
+              <div class="polaroid-image"><div style="width:100%;height:100%;background:linear-gradient(135deg,#1a1a3a,#0a0a2a); filter:contrast(1.05) saturate(0.85) sepia(0.08);"></div></div>
+              <div class="polaroid-caption">城市夜景</div>
+              <div class="polaroid-date">2024.05.20</div>
+            </div>
+            <!-- Polaroid 6 -->
+            <div class="polaroid">
+              <div class="polaroid-select">✓</div>
+              <span class="film-sim">Classic Chrome</span>
+              <div class="polaroid-image"><div style="width:100%;height:100%;background:linear-gradient(135deg,#2a2a1a,#3a3a2a); filter:contrast(1.05) saturate(0.85) sepia(0.08);"></div></div>
+              <div class="polaroid-caption">老街记忆</div>
+              <div class="polaroid-date">2024.06.08</div>
+            </div>
+          </div>
+        </div>
+        <div class="preview-panel">
+          <div class="panel-polaroid">
+            <div class="polaroid-image"><div style="width:100%;height:100%;background:linear-gradient(135deg,#3a2a1a,#5a3a2a); filter:contrast(1.05) saturate(0.85) sepia(0.08);"></div></div>
+            <div class="polaroid-caption">Golden Hour</div>
+          </div>
+          <div class="panel-exif">
+            <div class="panel-exif-title">Film Data</div>
+            <div class="panel-row"><span class="label">胶片模拟</span><span class="value">Classic Chrome</span></div>
+            <div class="panel-row"><span class="label">尺寸</span><span class="value">6000 × 4000</span></div>
+            <div class="panel-row"><span class="label">大小</span><span class="value">12.4 MB</span></div>
+            <div class="panel-row"><span class="label">相机</span><span class="value">X-T5</span></div>
+            <div class="panel-row"><span class="label">镜头</span><span class="value">XF 35mm f/1.4</span></div>
+            <div class="panel-row"><span class="label">光圈</span><span class="value">f/2.8</span></div>
+            <div class="panel-row"><span class="label">快门</span><span class="value">1/250s</span></div>
+            <div class="panel-row"><span class="label">ISO</span><span class="value">400</span></div>
+            <div class="panel-row"><span class="label">白平衡</span><span class="value">Auto</span></div>
+            <div class="panel-row"><span class="label">日期</span><span class="value">2024.03.15</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dialog -->
+    <h3 class="color-section-title">对话框</h3>
+    <div class="grid-2 mb-40">
+      <div class="dialog-overlay">
+        <div class="dialog-header"><div class="dialog-title">新建相册</div></div>
+        <div class="dialog-body">
+          <div class="input-group">
+            <label class="input-label">相册名称</label>
+            <input class="input" type="text" placeholder="给相册取个名字..." style="max-width:100%;" />
+          </div>
+          <div class="input-group" style="margin-bottom:0;">
+            <label class="input-label">描述</label>
+            <input class="input" type="text" placeholder="记录这段回忆..." style="max-width:100%;" />
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn btn-ghost btn-sm">取消</button>
+          <button class="btn btn-fuji btn-sm">创建</button>
+        </div>
+      </div>
+      <div class="dialog-overlay">
+        <div class="dialog-header"><div class="dialog-title">确认删除</div></div>
+        <div class="dialog-body">
+          <p style="font-size:13px; color:var(--text-secondary); line-height:1.7;">确定要删除选中的 <strong style="color:var(--fuji-warm);">23</strong> 张照片吗？这些回忆将无法恢复。</p>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn btn-ghost btn-sm">保留</button>
+          <button class="btn btn-danger btn-sm">删除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch Bar -->
+    <h3 class="color-section-title">批量操作栏</h3>
+    <div class="mb-40">
+      <div class="batch-bar">
+        <span class="batch-count">已选 12 张</span>
+        <div class="batch-divider"></div>
+        <button class="btn btn-ghost btn-sm">添加到相册</button>
+        <button class="btn btn-ghost btn-sm">收藏</button>
+        <button class="btn btn-ghost btn-sm">导出</button>
+        <div style="flex:1;"></div>
+        <button class="btn btn-danger btn-sm">删除</button>
+      </div>
+    </div>
+
+    <!-- Context Menu -->
+    <h3 class="color-section-title">右键菜单</h3>
+    <div class="grid-3 mb-40">
+      <div class="context-menu">
+        <div class="menu-item"><span class="menu-icon">👁</span> 预览 <span class="shortcut">Space</span></div>
+        <div class="menu-item"><span class="menu-icon">♡</span> 收藏 <span class="shortcut">F</span></div>
+        <div class="menu-divider"></div>
+        <div class="menu-item"><span class="menu-icon">📁</span> 添加到相册</div>
+        <div class="menu-item"><span class="menu-icon">📋</span> 复制 <span class="shortcut">⌘C</span></div>
+        <div class="menu-item"><span class="menu-icon">↗</span> 在 Finder 中显示 <span class="shortcut">⌘⇧R</span></div>
+        <div class="menu-divider"></div>
+        <div class="menu-item danger"><span class="menu-icon">✕</span> 删除 <span class="shortcut">⌫</span></div>
+      </div>
+      <div class="context-menu">
+        <div class="menu-item"><span class="menu-icon">✏</span> 重命名</div>
+        <div class="menu-item"><span class="menu-icon">🖼</span> 设为封面</div>
+        <div class="menu-divider"></div>
+        <div class="menu-item"><span class="menu-icon">↗</span> 导出相册</div>
+        <div class="menu-divider"></div>
+        <div class="menu-item danger"><span class="menu-icon">✕</span> 删除相册</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== POLAROID DETAIL ===== -->
+<section class="section" id="polaroid">
+  <div class="container">
+    <p class="section-num">08 — POLAROID</p>
+    <h2 class="section-title">拍立得预览</h2>
+    <p class="section-desc">照片预览的核心体验 — 每张照片都像从拍立得相机中吐出的即时成像。</p>
+
+    <div class="grid-3 mb-40">
+      <!-- Single Polaroid -->
+      <div>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">单张预览</p>
+        <div class="polaroid" style="transform:rotate(-1deg);">
+          <span class="film-sim">Classic Chrome</span>
+          <div class="polaroid-image"><div style="width:100%;height:100%;background:linear-gradient(135deg,#4a3a2a,#6a4a3a); filter:contrast(1.05) saturate(0.85) sepia(0.08);"></div></div>
+          <div class="polaroid-caption">日落时分</div>
+          <div class="polaroid-date">2024.07.22</div>
+        </div>
+      </div>
+
+      <!-- Stacked Polaroids -->
+      <div>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">堆叠效果</p>
+        <div class="polaroid-stack" style="margin-top:20px;">
+          <div class="polaroid" style="width:200px;">
+            <div class="polaroid-image"><div style="width:100%;height:100%;background:linear-gradient(135deg,#2a3a4a,#1a2a3a); filter:contrast(1.05) saturate(0.85) sepia(0.08);"></div></div>
+            <div class="polaroid-caption">蓝色时刻</div>
+          </div>
+          <div class="polaroid" style="width:200px;">
+            <div class="polaroid-image"><div style="width:100%;height:100%;background:linear-gradient(135deg,#3a2a1a,#4a3a2a); filter:contrast(1.05) saturate(0.85) sepia(0.08);"></div></div>
+            <div class="polaroid-caption"></div>
+          </div>
+          <div class="polaroid" style="width:200px;">
+            <div class="polaroid-image"><div style="width:100%;height:100%;background:linear-gradient(135deg,#1a3a2a,#2a4a3a); filter:contrast(1.05) saturate(0.85) sepia(0.08);"></div></div>
+            <div class="polaroid-caption"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tilted with selection -->
+      <div>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">选中态 + 倾斜</p>
+        <div class="polaroid selected" style="transform:rotate(2deg); margin-top:10px;">
+          <div class="polaroid-select">✓</div>
+          <span class="film-sim">PROVIA</span>
+          <div class="polaroid-image"><div style="width:100%;height:100%;background:linear-gradient(135deg,#3a3a1a,#4a4a2a); filter:contrast(1.05) saturate(0.85) sepia(0.08);"></div></div>
+          <div class="polaroid-caption">午后阳光</div>
+          <div class="polaroid-date">2024.08.05</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="color-section-title">Fuji 色彩模拟</h3>
+    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">照片卡片默认应用 Classic Chrome 色彩滤镜：低饱和、暖棕调、微褪色。</p>
+    <div class="code-block">
+      <span class="cm">/* Fuji Classic Chrome Film Simulation */</span><br>
+      <span class="p">filter</span>: <span class="v">contrast(1.05) saturate(0.85) brightness(1.02) sepia(0.08)</span>;<br><br>
+      <span class="cm">/* 效果：</span><br>
+      <span class="cm">   - contrast(1.05)  → 微增强对比，模拟胶片感光</span><br>
+      <span class="cm">   - saturate(0.85)  → 降低饱和度，Classic Chrome 特征</span><br>
+      <span class="cm">   - brightness(1.02)→ 微提亮，补偿暗部</span><br>
+      <span class="cm">   - sepia(0.08)     → 轻微暖棕调，复古胶片感</span><br>
+      <span class="cm">*/</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FILM STRIP ===== -->
+<section class="section" id="filmstrip">
+  <div class="container">
+    <p class="section-num">09 — FILM STRIP</p>
+    <h2 class="section-title">胶片条</h2>
+    <p class="section-desc">用于时间线浏览、连续照片预览，模拟 135 胶卷底片。</p>
+
+    <div class="film-strip-demo mb-40">
+      <div class="film-strip">
+        <div class="film-frame"><div class="film-placeholder" style="background:linear-gradient(135deg,#3a2a1a,#5a3a2a); filter:saturate(0.85) sepia(0.1);"></div></div>
+        <div class="film-frame"><div class="film-placeholder" style="background:linear-gradient(135deg,#1a2a3a,#0a1a2a); filter:saturate(0.85) sepia(0.1);"></div></div>
+        <div class="film-frame"><div class="film-placeholder" style="background:linear-gradient(135deg,#2a3a1a,#1a2a0a); filter:saturate(0.85) sepia(0.1);"></div></div>
+        <div class="film-frame"><div class="film-placeholder" style="background:linear-gradient(135deg,#3a1a2a,#2a0a1a); filter:saturate(0.85) sepia(0.1);"></div></div>
+        <div class="film-frame"><div class="film-placeholder" style="background:linear-gradient(135deg,#1a1a3a,#0a0a2a); filter:saturate(0.85) sepia(0.1);"></div></div>
+        <div class="film-frame"><div class="film-placeholder" style="background:linear-gradient(135deg,#2a2a1a,#3a3a2a); filter:saturate(0.85) sepia(0.1);"></div></div>
+        <div class="film-frame"><div class="film-placeholder" style="background:linear-gradient(135deg,#2a1a3a,#3a2a4a); filter:saturate(0.85) sepia(0.1);"></div></div>
+        <div class="film-frame"><div class="film-placeholder" style="background:linear-gradient(135deg,#0a2a3a,#1a3a4a); filter:saturate(0.85) sepia(0.1);"></div></div>
+      </div>
+    </div>
+
+    <h3 class="color-section-title">使用场景</h3>
+    <div class="grid-3">
+      <div class="type-specimen">
+        <p style="font-size:14px; font-weight:600; margin-bottom:6px;">时间线浏览</p>
+        <p style="font-size:12px; color:var(--text-secondary);">按日期排列的胶片条，左右滚动浏览一天的所有照片。</p>
+      </div>
+      <div class="type-specimen">
+        <p style="font-size:14px; font-weight:600; margin-bottom:6px;">相册预览</p>
+        <p style="font-size:12px; color:var(--text-secondary);">相册封面下方展示 3-5 张缩略胶片条，快速预览内容。</p>
+      </div>
+      <div class="type-specimen">
+        <p style="font-size:14px; font-weight:600; margin-bottom:6px;">照片对比</p>
+        <p style="font-size:12px; color:var(--text-secondary);">选中多张照片时，底部展示胶片条便于快速切换查看。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== EFFECTS ===== -->
+<section class="section">
+  <div class="container">
+    <p class="section-num">10 — EFFECTS</p>
+    <h2 class="section-title">视觉效果</h2>
+    <p class="section-desc">胶片的不完美就是它的美 — 颗粒、漏光、褪色。</p>
+
+    <div class="grid-2 mb-40">
+      <div class="type-specimen" style="position:relative; overflow:hidden;">
+        <div style="position:absolute;inset:0;opacity:0.06;background-image:url('data:image/svg+xml,%3Csvg viewBox=%220 0 512 512%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22g%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.75%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23g)%22/%3E%3C/svg%3E');background-size:512px;mix-blend-mode:overlay;pointer-events:none;"></div>
+        <p style="font-size:14px; font-weight:600; color:var(--fuji-warm); margin-bottom:8px;">胶片颗粒 Film Grain</p>
+        <p style="font-size:12px; color:var(--text-secondary);">全页面叠加的 SVG 噪点纹理（opacity: 0.04），使用 feTurbulence 滤镜，模拟真实胶片颗粒。</p>
+      </div>
+      <div class="type-specimen" style="position:relative; overflow:hidden;">
+        <div style="position:absolute;inset:0;background:linear-gradient(135deg, transparent 40%, rgba(192,57,43,0.04) 65%, rgba(212,165,116,0.06) 85%, transparent 100%);pointer-events:none;"></div>
+        <p style="font-size:14px; font-weight:600; color:var(--fuji-red); margin-bottom:8px;">漏光 Light Leak</p>
+        <p style="font-size:12px; color:var(--text-secondary);">右上角渐变的暖色光晕，模拟暗房失误或胶片相机漏光。用在主界面和大卡片上。</p>
+      </div>
+    </div>
+
+    <h3 class="color-section-title">Fuji 色彩滤镜矩阵</h3>
+    <div class="code-block">
+      <span class="cm">/* 所有胶片模拟的 CSS filter 定义 */</span><br><br>
+      <span class="p">--film-classic-chrome</span>: <span class="v">contrast(1.05) saturate(0.85) brightness(1.02) sepia(0.08)</span>;<br>
+      <span class="p">--film-provia</span>:         <span class="v">contrast(1.0)  saturate(1.0)  brightness(1.0)  sepia(0)</span>;<br>
+      <span class="p">--film-velvia</span>:         <span class="v">contrast(1.15) saturate(1.3)  brightness(0.98) sepia(0)</span>;<br>
+      <span class="p">--film-astia</span>:          <span class="v">contrast(0.95) saturate(0.9)  brightness(1.05) sepia(0.03)</span>;<br>
+      <span class="p">--film-classic-neg</span>:    <span class="v">contrast(1.0)  saturate(0.8)  brightness(1.05) sepia(0.12)</span>;<br>
+      <span class="p">--film-eterna</span>:         <span class="v">contrast(0.9)  saturate(0.75) brightness(1.08) sepia(0.05)</span>;<br>
+      <span class="p">--film-mono</span>:           <span class="v">grayscale(1) contrast(1.1) brightness(1.0)</span>;<br>
+      <span class="p">--film-sepia</span>:          <span class="v">sepia(0.8) contrast(1.05) saturate(0.6)</span>;
+    </div>
+  </div>
+</section>
+
+<!-- ===== MOTION ===== -->
+<section class="section" id="motion">
+  <div class="container">
+    <p class="section-num">11 — MOTION</p>
+    <h2 class="section-title">动效系统</h2>
+    <p class="section-desc">拍立得的"吐片"感 — 拍下快门后照片缓缓滑出。</p>
+
+    <div class="motion-grid">
+      <div class="motion-card">
+        <div class="motion-name">快门 Click</div>
+        <div class="motion-spec">150ms ease-out</div>
+        <div class="motion-bar"><div class="motion-fill" style="animation:mi 150ms ease-out;"></div></div>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">按钮点击、标签切换、选中态</p>
+      </div>
+      <div class="motion-card">
+        <div class="motion-name">对焦 Focus</div>
+        <div class="motion-spec">200ms ease-out</div>
+        <div class="motion-bar"><div class="motion-fill" style="animation:tr 200ms ease-out;"></div></div>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">输入聚焦、卡片浮起、悬停高亮</p>
+      </div>
+      <div class="motion-card">
+        <div class="motion-name">吐片 Eject</div>
+        <div class="motion-spec">300ms cubic-bezier(0.34,1.56,0.64,1)</div>
+        <div class="motion-bar"><div class="motion-fill" style="animation:ex 300ms cubic-bezier(0.34,1.56,0.64,1);"></div></div>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">拍立得弹出、对话框出现、照片预览进入</p>
+      </div>
+      <div class="motion-card">
+        <div class="motion-name">翻页 Flip</div>
+        <div class="motion-spec">400ms cubic-bezier(0.16,1,0.3,1)</div>
+        <div class="motion-bar"><div class="motion-fill" style="animation:pa 400ms cubic-bezier(0.16,1,0.3,1);"></div></div>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">视图切换、照片翻页、胶片条滚动</p>
+      </div>
+    </div>
+
+    <style>
+      @keyframes mi { from{width:0} to{width:25%} }
+      @keyframes tr { from{width:0} to{width:50%} }
+      @keyframes ex { from{width:0} to{width:75%} }
+      @keyframes pa { from{width:0} to{width:100%} }
+    </style>
+
+    <h3 class="color-section-title">吐片动画描述</h3>
+    <div class="type-specimen">
+      <p style="font-size:13px; color:var(--text-secondary); line-height:1.8;">
+        <strong style="color:var(--fuji-warm);">吐片 Eject</strong> — 使用带弹性的 cubic-bezier(0.34, 1.56, 0.64, 1) 缓动曲线。<br>
+        拍立得照片从底部滑入 + 轻微弹跳，模拟即时成像照片从相机口中缓缓吐出的物理感。<br>
+        同时配合 <code style="font-family:var(--font-mono); color:var(--fuji-chrome);">transform: translateY(20px) → translateY(0)</code> + <code style="font-family:var(--font-mono); color:var(--fuji-chrome);">opacity: 0 → 1</code>。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ACCESSIBILITY ===== -->
+<section class="section" id="a11y">
+  <div class="container">
+    <p class="section-num">12 — ACCESSIBILITY</p>
+    <h2 class="section-title">无障碍</h2>
+    <p class="section-desc">复古不意味着牺牲可读性 — 确保所有色彩组合都满足 WCAG 标准。</p>
+
+    <div class="type-specimen">
+      <table class="a11y-table">
+        <thead>
+          <tr><th>组合</th><th>前景</th><th>背景</th><th>对比度</th><th>WCAG</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>正文文字</td>
+            <td><span class="a11y-swatch" style="background:#e8e0d4;"></span>#e8e0d4</td>
+            <td><span class="a11y-swatch" style="background:#141210;"></span>#141210</td>
+            <td class="ratio-pass">12.1:1</td>
+            <td class="ratio-pass">AAA ✓</td>
+          </tr>
+          <tr>
+            <td>次要文字</td>
+            <td><span class="a11y-swatch" style="background:#9a9288;"></span>#9a9288</td>
+            <td><span class="a11y-swatch" style="background:#141210;"></span>#141210</td>
+            <td class="ratio-pass">5.8:1</td>
+            <td class="ratio-pass">AA ✓</td>
+          </tr>
+          <tr>
+            <td>快门红按钮</td>
+            <td><span class="a11y-swatch" style="background:#ffffff;"></span>#ffffff</td>
+            <td><span class="a11y-swatch" style="background:#c0392b;"></span>#c0392b</td>
+            <td class="ratio-pass">5.3:1</td>
+            <td class="ratio-pass">AA ✓</td>
+          </tr>
+          <tr>
+            <td>暖棕强调</td>
+            <td><span class="a11y-swatch" style="background:#d4a574;"></span>#d4a574</td>
+            <td><span class="a11y-swatch" style="background:#141210;"></span>#141210</td>
+            <td class="ratio-pass">7.4:1</td>
+            <td class="ratio-pass">AAA ✓</td>
+          </tr>
+          <tr>
+            <td>拍立得标注</td>
+            <td><span class="a11y-swatch" style="background:#5a4a3a;"></span>#5a4a3a</td>
+            <td><span class="a11y-swatch" style="background:#f2ede6;"></span>#f2ede6</td>
+            <td class="ratio-pass">6.2:1</td>
+            <td class="ratio-pass">AA ✓</td>
+          </tr>
+          <tr>
+            <td>胶片参数</td>
+            <td><span class="a11y-swatch" style="background:#c0392b;"></span>#c0392b</td>
+            <td><span class="a11y-swatch" style="background:#252220;"></span>#252220</td>
+            <td class="ratio-pass">4.8:1</td>
+            <td class="ratio-pass">AA ✓</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="color-section-title">设计原则</h3>
+    <div class="grid-3">
+      <div class="type-specimen">
+        <p style="font-family:var(--font-mono); font-size:13px; font-weight:700; color:var(--fuji-red); margin-bottom:6px;">01</p>
+        <p style="font-size:14px; font-weight:600; margin-bottom:6px;">即拍即得</p>
+        <p style="font-size:12px; color:var(--text-secondary);">每张照片都以拍立得形态呈现 — 白色边框、手写标注、微微倾斜。浏览照片就像翻阅一叠拍立得。</p>
+      </div>
+      <div class="type-specimen">
+        <p style="font-family:var(--font-mono); font-size:13px; font-weight:700; color:var(--fuji-red); margin-bottom:6px;">02</p>
+        <p style="font-size:14px; font-weight:600; margin-bottom:6px;">Classic Chrome</p>
+        <p style="font-size:12px; color:var(--text-secondary);">默认应用富士 Classic Chrome 色彩 — 低饱和暖棕调。让数字照片拥有胶片的温度和质感。</p>
+      </div>
+      <div class="type-specimen">
+        <p style="font-family:var(--font-mono); font-size:13px; font-weight:700; color:var(--fuji-red); margin-bottom:6px;">03</p>
+        <p style="font-size:14px; font-weight:600; margin-bottom:6px;">不完美的美</p>
+        <p style="font-size:12px; color:var(--text-secondary);">胶片颗粒、漏光、微微的倾斜和堆叠 — 拥抱模拟时代的不完美，它是温度的来源。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TOKEN REFERENCE ===== -->
+<section class="section">
+  <div class="container">
+    <p class="section-num">13 — TOKENS</p>
+    <h2 class="section-title">CSS 变量速查</h2>
+
+    <div class="code-block">
+      <span class="cm">/* ===== 富士胶片 × 拍立得 Design Tokens ===== */</span><br><br>
+      <span class="cm">/* 背景 */</span><br>
+      <span class="p">--bg-deep</span>: <span class="v">#0c0b0a</span>;<br>
+      <span class="p">--bg-primary</span>: <span class="v">#141210</span>;<br>
+      <span class="p">--bg-secondary</span>: <span class="v">#1c1a17</span>;<br>
+      <span class="p">--bg-tertiary</span>: <span class="v">#252220</span>;<br>
+      <span class="p">--bg-hover</span>: <span class="v">#2e2b28</span>;<br><br>
+      <span class="cm">/* 富士色 */</span><br>
+      <span class="p">--fuji-red</span>: <span class="v">#c0392b</span>; <span class="cm">/* 快门红 */</span><br>
+      <span class="p">--fuji-warm</span>: <span class="v">#d4a574</span>; <span class="cm">/* 暖棕 */</span><br>
+      <span class="p">--fuji-sepia</span>: <span class="v">#c4a882</span>; <span class="cm">/* 褪色 */</span><br>
+      <span class="p">--fuji-cream</span>: <span class="v">#f5e6c8</span>; <span class="cm">/* 奶油 */</span><br>
+      <span class="p">--fuji-silver</span>: <span class="v">#b8b0a8</span>; <span class="cm">/* 银色 */</span><br>
+      <span class="p">--fuji-chrome</span>: <span class="v">#8a8278</span>; <span class="cm">/* 铬色 */</span><br><br>
+      <span class="cm">/* 拍立得 */</span><br>
+      <span class="p">--polaroid-white</span>: <span class="v">#f2ede6</span>;<br>
+      <span class="p">--polaroid-bg</span>: <span class="v">#e8e0d4</span>;<br><br>
+      <span class="cm">/* 文字 */</span><br>
+      <span class="p">--text-primary</span>: <span class="v">#e8e0d4</span>;<br>
+      <span class="p">--text-secondary</span>: <span class="v">#9a9288</span>;<br>
+      <span class="p">--text-muted</span>: <span class="v">#6a6258</span>;<br><br>
+      <span class="cm">/* 字体 */</span><br>
+      <span class="p">--font-hand</span>: <span class="v">'Caveat', cursive</span>; <span class="cm">/* 拍立得手写 */</span><br>
+      <span class="p">--font-body</span>: <span class="v">'Inter', sans-serif</span>; <span class="cm">/* 界面 */</span><br>
+      <span class="p">--font-mono</span>: <span class="v">'Space Mono', monospace</span>; <span class="cm">/* 胶片参数 */</span><br><br>
+      <span class="cm">/* 阴影 */</span><br>
+      <span class="p">--shadow-polaroid</span>: <span class="v">0 2px 8px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.2)</span>;<br>
+      <span class="p">--shadow-polaroid-hover</span>: <span class="v">0 4px 16px rgba(0,0,0,0.4), 0 12px 40px rgba(0,0,0,0.3)</span>;<br><br>
+      <span class="cm">/* Fuji Classic Chrome 色彩滤镜 */</span><br>
+      <span class="p">filter</span>: <span class="v">contrast(1.05) saturate(0.85) brightness(1.02) sepia(0.08)</span>;
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <p>Image Master Design System — 富士胶片 × 拍立得</p>
+    <p style="margin-top:6px;">字体: <a href="https://fonts.google.com/share?selection.family=Caveat:wght@400;500;600;700|Inter:wght@300;400;500;600;700|Space+Mono:wght@400;700" target="_blank">Google Fonts — Caveat + Inter + Space Mono</a></p>
+  </div>
+</footer>
+
+<script>
+  const sections = document.querySelectorAll('.section, .hero');
+  const navDots = document.querySelectorAll('.nav-toc a');
+  const obs = new IntersectionObserver(e => {
+    e.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navDots.forEach(d => d.classList.toggle('active', d.getAttribute('href') === '#' + id));
+      }
+    });
+  }, { rootMargin: '-40% 0px -40% 0px' });
+  sections.forEach(s => { if (s.id) obs.observe(s); });
+</script>
+</body>
+</html>

@@ -11,7 +11,7 @@ const stars = [1, 2, 3, 4, 5]
             @click.stop="emit('rate', star)"
             class="transition-colors"
             :class="[
-              star <= rating ? 'text-accent' : 'text-text-muted/30',
+              star <= rating ? 'text-fuji-warm' : 'text-text-muted/30',
               size === 'sm' ? 'text-[10px]' : 'text-base'
             ]"
             role="radio"

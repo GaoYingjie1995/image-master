@@ -2,10 +2,11 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Star, X, Ban, Download, Trash2, CheckSquare, Square } from 'lucide-vue-next'
+import ConfirmDialog from './ConfirmDialog.vue'
 
 const { t } = useI18n()
 
-defineProps<{
+const props = defineProps<{
   count: number
   totalCount?: number
 }>()
@@ -30,18 +31,38 @@ const COLOR_LABELS = [
 ]
 
 const showColorPicker = ref(false)
+const showRejectConfirm = ref(false)
+const showDeleteConfirm = ref(false)
+
+function handleReject() {
+  showRejectConfirm.value = true
+}
+
+function confirmReject() {
+  showRejectConfirm.value = false
+  emit('reject')
+}
+
+function handleDelete() {
+  showDeleteConfirm.value = true
+}
+
+function confirmDelete() {
+  showDeleteConfirm.value = false
+  emit('delete')
+}
 </script>
 
 <template>
-  <div class="h-10 bg-bg-secondary border-b border-accent/20 flex items-center px-4 gap-2 animate-slide-down">
-    <span class="text-xs text-accent font-medium mr-1">{{ $t('batchAction.selected', { count }) }}</span>
-    <div class="w-px h-5 bg-white/5"></div>
+  <div class="h-10 bg-bg-secondary border-b border-border-film flex items-center px-4 gap-2 animate-slide-down">
+    <span class="text-xs text-fuji-warm font-medium mr-1">{{ $t('batchAction.selected', { count }) }}</span>
+    <div class="w-px h-5 bg-border-subtle"></div>
 
     <!-- 快速评分 -->
     <div class="flex items-center gap-0.5">
       <button v-for="star in 5" :key="star"
               @click="emit('rate', star)"
-              class="text-text-muted hover:text-accent transition-colors px-0.5"
+              class="text-text-muted hover:text-fuji-warm transition-colors px-0.5"
               :title="$t('batchAction.rate') + ' ' + star">
         <Star :size="13" />
       </button>
@@ -50,7 +71,7 @@ const showColorPicker = ref(false)
       </button>
     </div>
 
-    <div class="w-px h-5 bg-white/5"></div>
+    <div class="w-px h-5 bg-border-subtle"></div>
 
     <!-- 颜色标签 -->
     <div class="relative">
@@ -59,7 +80,7 @@ const showColorPicker = ref(false)
               :title="$t('batchAction.colorLabel')">
         <span class="w-3 h-3 rounded-full bg-text-muted inline-block"></span>
       </button>
-      <div v-if="showColorPicker" class="absolute top-full left-0 mt-1 flex gap-1 bg-bg-primary border border-white/10 rounded-lg px-2 py-1.5 shadow-xl z-10">
+      <div v-if="showColorPicker" class="absolute top-full left-0 mt-1 flex gap-1 bg-bg-primary border border-border-film rounded-lg px-2 py-1.5 shadow-xl z-10">
         <button v-for="cl in COLOR_LABELS" :key="cl.key"
                 @click="emit('colorLabel', cl.key); showColorPicker = false"
                 class="w-4 h-4 rounded-full hover:scale-125 transition-transform"
@@ -72,13 +93,13 @@ const showColorPicker = ref(false)
     </div>
 
     <!-- 拒绝 -->
-    <button @click="emit('reject')"
-            class="text-text-secondary hover:text-red-400 transition-colors px-1.5 py-0.5 rounded hover:bg-bg-hover"
+    <button @click="handleReject"
+            class="text-text-secondary hover:text-fuji-red transition-colors px-1.5 py-0.5 rounded hover:bg-bg-hover"
             :title="$t('batchAction.reject')">
       <Ban :size="14" />
     </button>
 
-    <div class="w-px h-5 bg-white/5"></div>
+    <div class="w-px h-5 bg-border-subtle"></div>
 
     <!-- 导出 -->
     <button @click="emit('export')"
@@ -88,8 +109,8 @@ const showColorPicker = ref(false)
     </button>
 
     <!-- 删除 -->
-    <button @click="emit('delete')"
-            class="text-text-secondary hover:text-red-400 transition-colors px-1.5 py-0.5 rounded hover:bg-bg-hover"
+    <button @click="handleDelete"
+            class="text-text-secondary hover:text-fuji-red transition-colors px-1.5 py-0.5 rounded hover:bg-bg-hover"
             :title="$t('batchAction.delete')">
       <Trash2 :size="14" />
     </button>
@@ -109,7 +130,7 @@ const showColorPicker = ref(false)
       <Square :size="14" />
     </button>
 
-    <div class="w-px h-5 bg-white/5"></div>
+    <div class="w-px h-5 bg-border-subtle"></div>
 
     <!-- 清除选择 -->
     <button @click="emit('clear')"
@@ -117,6 +138,24 @@ const showColorPicker = ref(false)
       {{ $t('batchAction.clearSelection') }}
     </button>
   </div>
+
+  <!-- 拒绝确认对话框 -->
+  <ConfirmDialog :visible="showRejectConfirm"
+                 :title="$t('batchAction.reject')"
+                 :message="$t('batchAction.confirmReject', { count })"
+                 :confirm-text="$t('batchAction.reject')"
+                 :danger="true"
+                 @confirm="confirmReject"
+                 @cancel="showRejectConfirm = false" />
+
+  <!-- 删除确认对话框 -->
+  <ConfirmDialog :visible="showDeleteConfirm"
+                 :title="$t('batchAction.delete')"
+                 :message="$t('batchAction.confirmDelete', { count })"
+                 :confirm-text="$t('batchAction.delete')"
+                 :danger="true"
+                 @confirm="confirmDelete"
+                 @cancel="showDeleteConfirm = false" />
 </template>
 
 <style scoped>

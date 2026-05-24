@@ -11,9 +11,20 @@ export interface KeyBindings {
   rate3: string
   rate4: string
   rate5: string
+  rate0: string
   reject: string
   delete: string
   export: string
+  colorRed: string
+  colorYellow: string
+  colorGreen: string
+  colorBlue: string
+  colorPurple: string
+  zoomIn: string
+  zoomOut: string
+  zoomToggle: string
+  exifToggle: string
+  keepZoom: string
 }
 
 const DEFAULT_BINDINGS: KeyBindings = {
@@ -26,9 +37,20 @@ const DEFAULT_BINDINGS: KeyBindings = {
   rate3: '3',
   rate4: '4',
   rate5: '5',
+  rate0: '0',
   reject: 'x',
   delete: 'Delete',
-  export: 'e'
+  export: 'e',
+  colorRed: '6',
+  colorYellow: '7',
+  colorGreen: '8',
+  colorBlue: '9',
+  colorPurple: 'p',
+  zoomIn: '+',
+  zoomOut: '-',
+  zoomToggle: 'z',
+  exifToggle: 'i',
+  keepZoom: 'k'
 }
 
 export function useKeyboard(handlers: Partial<Record<keyof KeyBindings, (e: KeyboardEvent) => void>>) {

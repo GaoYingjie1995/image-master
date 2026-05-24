@@ -46,14 +46,14 @@ function handleDeleteOthers(group: { photos: { id: number; file_path: string }[]
 </script>
 
 <template>
-  <div class="bg-bg-secondary rounded-xl border border-white/5 p-4">
+  <div class="bg-bg-secondary rounded-xl border border-border-subtle p-4">
     <div class="flex items-center gap-2 mb-3">
-      <span class="text-xs text-accent font-medium">{{ $t('duplicates.group') }}</span>
+      <span class="text-xs text-fuji-warm font-medium">{{ $t('duplicates.group') }}</span>
       <span class="text-[10px] text-text-muted">{{ $t('duplicates.files', { count: group.photos.length }) }}</span>
       <div class="flex-1"></div>
       <button v-if="keptId !== null"
               @click="handleDeleteOthers(group)" :disabled="disabled"
-              class="px-3 py-1 text-xs rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50">
+              class="px-3 py-1 text-xs rounded-md bg-fuji-red/10 text-fuji-red hover:bg-fuji-red/20 transition-colors disabled:opacity-50">
         {{ $t('duplicates.deleteOthers', { count: group.photos.length - 1 }) }}
       </button>
     </div>
@@ -63,11 +63,11 @@ function handleDeleteOthers(group: { photos: { id: number; file_path: string }[]
            :class="keptId === photo.id ? 'ring-1 ring-green-500/30' : keptId !== null ? 'opacity-50' : ''"
            @vue:mounted="loadThumbnail(photo.id)">
         <img v-if="thumbUrls.get(photo.id)" :src="thumbUrls.get(photo.id)"
-             class="w-12 h-12 rounded-md object-cover" :alt="photo.file_name" />
+             class="w-12 h-12 rounded-md object-cover film-classic-chrome" :alt="photo.file_name" />
         <div v-else class="w-12 h-12 bg-bg-hover rounded-md flex items-center justify-center text-lg opacity-30">◈</div>
         <div class="flex-1 min-w-0">
           <div class="text-sm text-text-primary truncate">{{ photo.file_name }}</div>
-          <div class="text-[11px] text-text-muted truncate">{{ photo.file_path }}</div>
+          <div class="text-[11px] text-text-muted truncate font-mono">{{ photo.file_path }}</div>
           <div class="text-[11px] text-text-muted">{{ formatSize(photo.file_size) }}</div>
         </div>
         <div class="flex gap-2 items-center">
@@ -77,7 +77,7 @@ function handleDeleteOthers(group: { photos: { id: number; file_path: string }[]
             {{ $t('duplicates.keep') }}
           </button>
           <button @click="$emit('delete', photo.file_path)" :disabled="disabled"
-                  class="px-3 py-1 text-xs rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50">
+                  class="px-3 py-1 text-xs rounded-md bg-fuji-red/10 text-fuji-red hover:bg-fuji-red/20 transition-colors disabled:opacity-50">
             {{ $t('duplicates.delete') }}
           </button>
         </div>

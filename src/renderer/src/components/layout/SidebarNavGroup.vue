@@ -35,8 +35,8 @@ function handleKeydown(e: KeyboardEvent, path: string) {
          tabindex="0"
          role="link"
          :aria-current="isActive(item.route) ? 'page' : undefined"
-         class="flex items-center gap-2.5 py-[7px] px-3 rounded-md cursor-pointer transition-colors text-[13px] relative outline-none focus:ring-1 focus:ring-accent/50"
-         :class="isActive(item.route) ? 'bg-accent-dim text-accent' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'">
+         class="flex items-center gap-2.5 py-[7px] px-3 rounded-md cursor-pointer transition-colors text-[13px] relative outline-none focus:ring-1 focus:ring-fuji-warm/50"
+         :class="isActive(item.route) ? 'bg-fuji-warm-dim text-fuji-warm' : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'">
       <component :is="item.icon" :size="16" class="shrink-0" aria-hidden="true" />
       <span>{{ $t(item.labelKey) }}</span>
     </div>

@@ -19,10 +19,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateRating: (id: number, rating: number) => ipcRenderer.invoke('photos:updateRating', id, rating),
     batchUpdateRating: (ids: number[], rating: number) => ipcRenderer.invoke('photos:batchUpdateRating', ids, rating),
     updateColorLabel: (id: number, label: string | null) => ipcRenderer.invoke('photos:updateColorLabel', id, label),
+    batchUpdateColorLabel: (ids: number[], label: string | null) => ipcRenderer.invoke('photos:batchUpdateColorLabel', ids, label),
     updateRejected: (id: number, rejected: boolean) => ipcRenderer.invoke('photos:updateRejected', id, rejected),
+    batchUpdateRejected: (ids: number[], rejected: boolean) => ipcRenderer.invoke('photos:batchUpdateRejected', ids, rejected),
     batchDelete: (ids: number[]) => ipcRenderer.invoke('photos:batchDelete', ids),
     importFolder: () => ipcRenderer.invoke('photos:importFolder'),
     getThumbnail: (photoId: number) => ipcRenderer.invoke('photos:getThumbnail', photoId),
+    getThumbnails: (photoIds: number[]) => ipcRenderer.invoke('photos:getThumbnails', photoIds),
     getPreview: (photoId: number) => ipcRenderer.invoke('photos:getPreview', photoId),
     onScanProgress: (callback: (data: { current: number; total: number }) => void) => {
       const handler = (_e: Electron.IpcRendererEvent, data: { current: number; total: number }) => callback(data)

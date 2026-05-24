@@ -21,9 +21,8 @@ export function useBatchOperations() {
 
   async function batchColorLabel(label: string | null) {
     const ids = Array.from(selection.selectedIds)
-    for (const id of ids) {
-      await api.photos.updateColorLabel(id, label)
-    }
+    if (ids.length === 0) return
+    await api.photos.batchUpdateColorLabel(ids, label)
     for (const photo of photosStore.photos) {
       if (selection.selectedIds.has(photo.id)) {
         photo.color_label = label
@@ -33,9 +32,8 @@ export function useBatchOperations() {
 
   async function batchReject() {
     const ids = Array.from(selection.selectedIds)
-    for (const id of ids) {
-      await api.photos.updateRejected(id, true)
-    }
+    if (ids.length === 0) return
+    await api.photos.batchUpdateRejected(ids, true)
     for (const photo of photosStore.photos) {
       if (selection.selectedIds.has(photo.id)) {
         photo.is_rejected = 1

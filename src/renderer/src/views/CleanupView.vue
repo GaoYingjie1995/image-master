@@ -77,15 +77,15 @@ async function handleConfirm() {
 
 <template>
   <div class="flex flex-col h-full p-6 overflow-y-auto">
-    <h2 class="font-display text-xl text-accent mb-6">{{ $t('cleanup.title') }}</h2>
+    <h2 class="font-hand text-xl text-fuji-warm mb-6">{{ $t('cleanup.title') }}</h2>
 
     <div class="flex gap-3 mb-6">
       <button @click="selectFolder"
-              class="px-4 py-2 text-sm rounded-lg bg-bg-tertiary border border-white/5 text-text-secondary hover:bg-bg-hover hover:text-text-primary transition-colors">
+              class="px-4 py-2 text-sm rounded-lg bg-bg-tertiary border border-border-subtle text-text-secondary hover:bg-bg-hover hover:text-text-primary transition-colors">
         {{ folderPath || $t('cleanup.selectFolder') }}
       </button>
       <button @click="startScan" :disabled="!folderPath || scanning"
-              class="px-4 py-2 text-sm rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors disabled:opacity-50">
+              class="px-4 py-2 text-sm rounded-lg bg-fuji-warm/10 text-fuji-warm hover:bg-fuji-warm/20 transition-colors disabled:opacity-50">
         {{ scanning ? $t('cleanup.scanning') : $t('cleanup.scanOrphaned') }}
       </button>
     </div>

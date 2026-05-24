@@ -197,6 +197,23 @@ export function createPhotoRepo(db: Database.Database) {
       batch(ids)
     },
 
+    batchUpdateColorLabel(ids: number[], label: string | null): void {
+      const stmt = db.prepare('UPDATE photos SET color_label = ? WHERE id = ?')
+      const batch = db.transaction((items: number[]) => {
+        for (const id of items) stmt.run(label, id)
+      })
+      batch(ids)
+    },
+
+    batchUpdateRejected(ids: number[], rejected: boolean): void {
+      const stmt = db.prepare('UPDATE photos SET is_rejected = ? WHERE id = ?')
+      const value = rejected ? 1 : 0
+      const batch = db.transaction((items: number[]) => {
+        for (const id of items) stmt.run(value, id)
+      })
+      batch(ids)
+    },
+
     batchDelete(ids: number[]): void {
       const stmt = db.prepare('DELETE FROM photos WHERE id = ?')
       const batch = db.transaction((items: number[]) => {

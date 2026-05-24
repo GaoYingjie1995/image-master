@@ -236,15 +236,15 @@ async function confirmBatchDelete() {
 
 <template>
   <div class="flex flex-col h-full p-6 overflow-y-auto">
-    <h2 class="font-display text-xl text-accent mb-6">{{ $t('duplicates.title') }}</h2>
+    <h2 class="font-hand text-xl text-fuji-warm mb-6">{{ $t('duplicates.title') }}</h2>
 
     <div class="flex gap-3 mb-6">
       <button @click="selectFolder"
-              class="px-4 py-2 text-sm rounded-lg bg-bg-tertiary border border-white/5 text-text-secondary hover:bg-bg-hover hover:text-text-primary transition-colors">
+              class="px-4 py-2 text-sm rounded-lg bg-bg-tertiary border border-border-subtle text-text-secondary hover:bg-bg-hover hover:text-text-primary transition-colors">
         {{ folderPath || $t('duplicates.selectFolder') }}
       </button>
       <button @click="startScan" :disabled="!folderPath || scanning"
-              class="px-4 py-2 text-sm rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors disabled:opacity-50">
+              class="px-4 py-2 text-sm rounded-lg bg-fuji-warm/10 text-fuji-warm hover:bg-fuji-warm/20 transition-colors disabled:opacity-50">
         {{ scanning ? $t('duplicates.scanning') : $t('duplicates.startScan') }}
       </button>
     </div>
@@ -252,24 +252,24 @@ async function confirmBatchDelete() {
     <div v-if="scanning" class="mb-4">
       <div class="text-xs text-text-muted">{{ progress.phase }}: {{ progress.current }}/{{ progress.total }}</div>
       <div class="mt-1 h-1 bg-bg-tertiary rounded-full overflow-hidden">
-        <div class="h-full bg-accent rounded-full transition-all" :style="{ width: (progress.total > 0 ? progress.current / progress.total * 100 : 0) + '%' }"></div>
+        <div class="h-full bg-fuji-warm rounded-full transition-all" :style="{ width: (progress.total > 0 ? progress.current / progress.total * 100 : 0) + '%' }"></div>
       </div>
     </div>
 
-    <div v-if="showBatchBar" class="mb-4 p-4 bg-bg-secondary rounded-xl border border-white/5">
+    <div v-if="showBatchBar" class="mb-4 p-4 bg-bg-secondary rounded-xl border border-border-subtle">
       <div class="flex items-center gap-3 flex-wrap">
         <span class="text-xs text-text-secondary">{{ $t('duplicates.keepFolder') }}:</span>
         <select v-model="keepFolder"
-                class="px-3 py-1.5 text-sm rounded-lg bg-bg-tertiary border border-white/5 text-text-primary min-w-0 flex-1 max-w-md">
+                class="px-3 py-1.5 text-sm rounded-lg bg-bg-tertiary border border-border-subtle text-text-primary min-w-0 flex-1 max-w-md">
           <option value="">{{ $t('duplicates.selectKeepFolder') }}</option>
           <option v-for="f in folders" :key="f" :value="f">{{ f }}</option>
         </select>
         <button @click="applyBatchSelection" :disabled="!keepFolder"
-                class="px-3 py-1.5 text-sm rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors disabled:opacity-50">
+                class="px-3 py-1.5 text-sm rounded-lg bg-fuji-warm/10 text-fuji-warm hover:bg-fuji-warm/20 transition-colors disabled:opacity-50">
           {{ $t('duplicates.batchSelect') }}
         </button>
         <button v-if="batchDeleteCount > 0" @click="requestBatchDelete" :disabled="deleting"
-                class="px-3 py-1.5 text-sm rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50">
+                class="px-3 py-1.5 text-sm rounded-lg bg-fuji-red/10 text-fuji-red hover:bg-fuji-red/20 transition-colors disabled:opacity-50">
           {{ $t('duplicates.batchDelete', { count: batchDeleteCount }) }}
         </button>
       </div>
@@ -286,8 +286,8 @@ async function confirmBatchDelete() {
       </div>
       <Transition name="fade">
         <div v-if="deleting" class="absolute inset-0 flex items-center justify-center z-10">
-          <div class="flex items-center gap-3 px-5 py-3 bg-bg-secondary/90 rounded-xl border border-white/10 shadow-lg backdrop-blur-sm">
-            <svg class="animate-spin h-5 w-5 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <div class="flex items-center gap-3 px-5 py-3 bg-bg-secondary/90 rounded-xl border border-border-film shadow-lg backdrop-blur-sm">
+            <svg class="animate-spin h-5 w-5 text-fuji-warm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>

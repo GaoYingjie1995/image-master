@@ -159,18 +159,44 @@ async function handleReject() {
 function handleBatchExport() {
   router.push({ name: 'batch-export', query: { ids: Array.from(selection.selectedIds).join(',') } })
 }
+
+// 跨页全选：加载所有匹配条件的照片 ID
+async function handleSelectAll() {
+  const name = route.name as string
+  let options: { filter?: string; search?: string; albumId?: number } = {}
+
+  if (name === 'today') {
+    options.filter = 'today'
+  } else if (name === 'rated') {
+    options.filter = 'rated'
+  } else if (name === 'rejected') {
+    options.filter = 'rejected'
+  } else if (name === 'album' && route.params.id) {
+    options.albumId = Number(route.params.id)
+  }
+
+  if (photosStore.searchQuery) {
+    options.search = photosStore.searchQuery
+  }
+
+  if (window.electronAPI) {
+    const allIds = await window.electronAPI.photos.getIdsByFilter(options)
+    selection.selectAll(allIds)
+  }
+}
 </script>
 
 <template>
   <div class="flex flex-col h-full">
     <BatchActionBar v-if="selection.count > 0"
                     :count="selection.count"
+                    :total-count="photosStore.totalCount"
                     @rate="batchRate"
                     @color-label="batchColorLabel"
                     @reject="batchReject"
                     @delete="batchDelete"
                     @export="handleBatchExport"
-                    @select-all="selection.selectAll(photosStore.photos.map(p => p.id))"
+                    @select-all="handleSelectAll"
                     @deselect-all="selection.clear"
                     @clear="selection.clear" />
 
@@ -216,12 +242,16 @@ function handleBatchExport() {
                  @contextmenu="(e, p) => openContextMenu(e, p)" />
       <PhotoPreview :photo="previewPhoto"
                     :visible="showPreview"
+                    :photos="photosStore.photos"
+                    :has-more="photosStore.hasMore"
+                    :loading-more="photosStore.loadingMore"
                     @close="closePreview"
                     @prev="prevPhoto"
                     @next="nextPhoto"
                     @rate="(r) => previewPhoto && handleRate(previewPhoto.id, r)"
                     @color-label="handleColorLabel"
-                    @reject="handleReject" />
+                    @reject="handleReject"
+                    @load-more="photosStore.fetchNextPage" />
       <ContextMenu :visible="contextMenu.visible"
                    :x="contextMenu.x"
                    :y="contextMenu.y"

@@ -84,7 +84,6 @@ async function setLanguage(lang: 'zh-CN' | 'en') {
 }
 
 async function updateKeyBinding(action: keyof KeyBindings, key: string) {
-  // 检测快捷键冲突
   const conflicting = Object.entries(keyBindings.value).find(
     ([k, v]) => k !== action && v === key && v !== ''
   )
@@ -106,19 +105,30 @@ const bindingLabels = computed<Record<keyof KeyBindings, string>>(() => ({
   rate3: t('settings.keyBindingsList.rate3'),
   rate4: t('settings.keyBindingsList.rate4'),
   rate5: t('settings.keyBindingsList.rate5'),
+  rate0: t('settings.keyBindingsList.rate0'),
   reject: t('settings.keyBindingsList.reject'),
   delete: t('settings.keyBindingsList.delete'),
-  export: t('settings.keyBindingsList.export')
+  export: t('settings.keyBindingsList.export'),
+  colorRed: t('settings.keyBindingsList.colorRed'),
+  colorYellow: t('settings.keyBindingsList.colorYellow'),
+  colorGreen: t('settings.keyBindingsList.colorGreen'),
+  colorBlue: t('settings.keyBindingsList.colorBlue'),
+  colorPurple: t('settings.keyBindingsList.colorPurple'),
+  zoomIn: t('settings.keyBindingsList.zoomIn'),
+  zoomOut: t('settings.keyBindingsList.zoomOut'),
+  zoomToggle: t('settings.keyBindingsList.zoomToggle'),
+  exifToggle: t('settings.keyBindingsList.exifToggle'),
+  keepZoom: t('settings.keyBindingsList.keepZoom')
 }))
 </script>
 
 <template>
   <div class="flex flex-col h-full p-6 overflow-y-auto">
-    <h2 class="font-display text-xl text-accent mb-6">{{ $t('settings.title') }}</h2>
+    <h2 class="font-hand text-xl text-fuji-warm mb-6">{{ $t('settings.title') }}</h2>
 
     <div class="space-y-6 max-w-lg">
       <!-- 外观 -->
-      <div class="bg-bg-secondary rounded-xl border border-white/5 p-4">
+      <div class="bg-bg-secondary rounded-xl border border-border-subtle p-4">
         <h3 class="text-sm font-medium text-text-primary mb-3">{{ $t('settings.appearance') }}</h3>
         <div class="space-y-3">
           <div>
@@ -126,14 +136,14 @@ const bindingLabels = computed<Record<keyof KeyBindings, string>>(() => ({
             <div class="flex gap-2">
               <button @click="setTheme('dark')"
                       class="px-4 py-2 text-xs rounded-lg transition-colors flex items-center gap-2"
-                      :class="theme === 'dark' ? 'bg-accent-dim text-accent border border-accent/30' : 'bg-bg-tertiary text-text-secondary border border-white/5 hover:bg-bg-hover'">
-                <span class="w-3 h-3 rounded-full bg-[#08080a] border border-white/10"></span>
+                      :class="theme === 'dark' ? 'bg-fuji-warm-dim text-fuji-warm border border-fuji-warm/30' : 'bg-bg-tertiary text-text-secondary border border-border-subtle hover:bg-bg-hover'">
+                <span class="w-3 h-3 rounded-full bg-[#0c0b0a] border border-white/10"></span>
                 {{ $t('settings.dark') }}
               </button>
               <button @click="setTheme('light')"
                       class="px-4 py-2 text-xs rounded-lg transition-colors flex items-center gap-2"
-                      :class="theme === 'light' ? 'bg-accent-dim text-accent border border-accent/30' : 'bg-bg-tertiary text-text-secondary border border-white/5 hover:bg-bg-hover'">
-                <span class="w-3 h-3 rounded-full bg-[#f5f5f7] border border-black/10"></span>
+                      :class="theme === 'light' ? 'bg-fuji-warm-dim text-fuji-warm border border-fuji-warm/30' : 'bg-bg-tertiary text-text-secondary border border-border-subtle hover:bg-bg-hover'">
+                <span class="w-3 h-3 rounded-full bg-[#f5f0ea] border border-black/10"></span>
                 {{ $t('settings.light') }}
               </button>
             </div>
@@ -143,12 +153,12 @@ const bindingLabels = computed<Record<keyof KeyBindings, string>>(() => ({
             <div class="flex gap-2">
               <button @click="setLanguage('zh-CN')"
                       class="px-4 py-2 text-xs rounded-lg transition-colors"
-                      :class="language === 'zh-CN' ? 'bg-accent-dim text-accent border border-accent/30' : 'bg-bg-tertiary text-text-secondary border border-white/5 hover:bg-bg-hover'">
+                      :class="language === 'zh-CN' ? 'bg-fuji-warm-dim text-fuji-warm border border-fuji-warm/30' : 'bg-bg-tertiary text-text-secondary border border-border-subtle hover:bg-bg-hover'">
                 中文
               </button>
               <button @click="setLanguage('en')"
                       class="px-4 py-2 text-xs rounded-lg transition-colors"
-                      :class="language === 'en' ? 'bg-accent-dim text-accent border border-accent/30' : 'bg-bg-tertiary text-text-secondary border border-white/5 hover:bg-bg-hover'">
+                      :class="language === 'en' ? 'bg-fuji-warm-dim text-fuji-warm border border-fuji-warm/30' : 'bg-bg-tertiary text-text-secondary border border-border-subtle hover:bg-bg-hover'">
                 English
               </button>
             </div>
@@ -157,14 +167,14 @@ const bindingLabels = computed<Record<keyof KeyBindings, string>>(() => ({
       </div>
 
       <!-- 文件管理 -->
-      <div class="bg-bg-secondary rounded-xl border border-white/5 p-4">
+      <div class="bg-bg-secondary rounded-xl border border-border-subtle p-4">
         <h3 class="text-sm font-medium text-text-primary mb-3">{{ $t('settings.fileManagement') }}</h3>
         <label class="flex items-center gap-3 cursor-pointer" @click="toggleDeleteLinkedRaw">
           <div class="relative">
             <div class="w-9 h-5 rounded-full transition-colors"
-                 :class="deleteLinkedRaw ? 'bg-accent/30' : 'bg-bg-tertiary'">
+                 :class="deleteLinkedRaw ? 'bg-fuji-warm/30' : 'bg-bg-tertiary'">
               <div class="absolute top-0.5 w-4 h-4 rounded-full transition-all"
-                   :class="deleteLinkedRaw ? 'left-[18px] bg-accent' : 'left-0.5 bg-text-muted'"></div>
+                   :class="deleteLinkedRaw ? 'left-[18px] bg-fuji-warm' : 'left-0.5 bg-text-muted'"></div>
             </div>
           </div>
           <div>
@@ -175,7 +185,7 @@ const bindingLabels = computed<Record<keyof KeyBindings, string>>(() => ({
       </div>
 
       <!-- 快捷键 -->
-      <div class="bg-bg-secondary rounded-xl border border-white/5 p-4">
+      <div class="bg-bg-secondary rounded-xl border border-border-subtle p-4">
         <h3 class="text-sm font-medium text-text-primary mb-3">{{ $t('settings.keyBindings') }}</h3>
         <div class="space-y-2">
           <div v-for="(label, action) in bindingLabels" :key="action"
@@ -183,14 +193,14 @@ const bindingLabels = computed<Record<keyof KeyBindings, string>>(() => ({
             <span class="text-xs text-text-secondary">{{ label }}</span>
             <input :value="keyBindings[action as keyof KeyBindings]"
                    @keydown.prevent="updateKeyBinding(action as keyof KeyBindings, $event.key)"
-                   class="w-24 bg-bg-tertiary border border-white/5 rounded px-2 py-1 text-xs text-text-primary text-center outline-none focus:border-accent/30"
+                   class="w-24 bg-bg-tertiary border border-border-subtle rounded px-2 py-1 text-xs text-text-primary text-center outline-none focus:border-fuji-warm/30"
                    readonly />
           </div>
         </div>
       </div>
 
       <!-- 缓存管理 -->
-      <div class="bg-bg-secondary rounded-xl border border-white/5 p-4">
+      <div class="bg-bg-secondary rounded-xl border border-border-subtle p-4">
         <h3 class="text-sm font-medium text-text-primary mb-3">{{ $t('cache.title') }}</h3>
         <div class="space-y-3">
           <div class="flex items-center justify-between">
@@ -203,39 +213,39 @@ const bindingLabels = computed<Record<keyof KeyBindings, string>>(() => ({
             </button>
           </div>
           <button @click="handleClearCache" :disabled="clearingCache || cacheInfo.fileCount === 0"
-                  class="px-4 py-2 text-xs rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50">
+                  class="px-4 py-2 text-xs rounded-lg bg-fuji-red/10 text-fuji-red hover:bg-fuji-red/20 transition-colors disabled:opacity-50">
             {{ clearingCache ? $t('cache.clearing') : $t('cache.clear') }}
           </button>
         </div>
       </div>
 
       <!-- 数据库管理 -->
-      <div class="bg-bg-secondary rounded-xl border border-white/5 p-4">
+      <div class="bg-bg-secondary rounded-xl border border-border-subtle p-4">
         <h3 class="text-sm font-medium text-text-primary mb-3">{{ $t('cache.database') }}</h3>
         <div class="space-y-3">
           <div>
             <div class="text-xs text-text-secondary mb-1">{{ $t('cache.rescanDesc') }}</div>
           </div>
           <button @click="handleRescan" :disabled="rescanning"
-                  class="px-4 py-2 text-xs rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors disabled:opacity-50">
+                  class="px-4 py-2 text-xs rounded-lg bg-fuji-warm/10 text-fuji-warm hover:bg-fuji-warm/20 transition-colors disabled:opacity-50">
             {{ rescanning ? $t('cache.clearing') : $t('cache.rescan') }}
           </button>
         </div>
       </div>
 
       <!-- RAW 格式 -->
-      <div class="bg-bg-secondary rounded-xl border border-white/5 p-4">
+      <div class="bg-bg-secondary rounded-xl border border-border-subtle p-4">
         <h3 class="text-sm font-medium text-text-primary mb-3">{{ $t('settings.supportedFormats') }}</h3>
         <div class="flex flex-wrap gap-2">
           <span v-for="fmt in ['CR2', 'CR3', 'NEF', 'ARW', 'ORF', 'RAF', 'DNG', 'PEF', 'SRW', 'RW2']" :key="fmt"
-                class="px-2 py-0.5 text-xs rounded bg-bg-tertiary text-text-secondary">
+                class="px-2 py-0.5 text-xs rounded bg-bg-tertiary text-text-secondary font-mono">
             {{ fmt }}
           </span>
         </div>
       </div>
 
       <!-- 关于 -->
-      <div class="bg-bg-secondary rounded-xl border border-white/5 p-4">
+      <div class="bg-bg-secondary rounded-xl border border-border-subtle p-4">
         <h3 class="text-sm font-medium text-text-primary mb-3">{{ $t('settings.about') }}</h3>
         <div class="text-[11px] text-text-muted space-y-1">
           <div>{{ $t('app.name') }} {{ $t('app.version') }}</div>

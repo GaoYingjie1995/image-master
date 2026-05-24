@@ -33,17 +33,17 @@ onUnmounted(() => { window.removeEventListener('keydown', handleKeydown) })
     <Transition name="fade">
       <div v-if="visible" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
            @click.self="$emit('cancel')">
-        <div class="bg-bg-secondary border border-white/10 rounded-xl p-5 w-80 shadow-2xl">
+        <div class="bg-bg-secondary border border-border-film rounded-xl p-5 w-80 shadow-2xl">
           <h3 class="text-sm font-medium text-text-primary mb-2">{{ title }}</h3>
           <p class="text-xs text-text-secondary mb-5">{{ message }}</p>
           <div class="flex justify-end gap-2">
             <button @click="$emit('cancel')"
-                    class="px-4 py-1.5 text-xs rounded-lg bg-bg-tertiary text-text-secondary hover:bg-bg-hover border border-white/5 transition-colors">
+                    class="px-4 py-1.5 text-xs rounded-lg bg-bg-tertiary text-text-secondary hover:bg-bg-hover border border-border-subtle transition-colors">
               {{ cancelText || t('common.cancel') }}
             </button>
             <button @click="$emit('confirm')"
                     class="px-4 py-1.5 text-xs rounded-lg transition-colors"
-                    :class="danger ? 'bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/20' : 'bg-accent/15 text-accent hover:bg-accent/25 border border-accent/20'">
+                    :class="danger ? 'bg-fuji-red/15 text-fuji-red hover:bg-fuji-red/25 border border-fuji-red/20' : 'bg-fuji-warm/15 text-fuji-warm hover:bg-fuji-warm/25 border border-fuji-warm/20'">
               {{ confirmText || t('common.confirm') }}
             </button>
           </div>
