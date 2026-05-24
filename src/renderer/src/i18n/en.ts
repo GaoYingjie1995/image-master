@@ -31,7 +31,8 @@ export default {
     albums: 'Albums',
     newAlbum: '+ New Album',
     newSmartAlbum: '+ New Smart Album',
-    importSources: 'Import Folders'
+    importSources: 'Import Folders',
+    manage: 'Manage'
   },
   toolbar: {
     date: 'Date',

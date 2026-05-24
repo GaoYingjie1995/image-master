@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, defineComponent, h, type PropType } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '../../stores/toast'
 import { useAlbumsStore, type Album } from '../../stores/albums'
-import { Image, Star, Clock, XCircle, Copy, Trash2, FileEdit, Download, Map as MapIcon, BarChart3, Columns, ChevronRight, FolderInput } from 'lucide-vue-next'
+import { Image, Star, Clock, XCircle, Copy, Trash2, FileEdit, Download, Map as MapIcon, BarChart3, Columns, FolderInput } from 'lucide-vue-next'
 import AlbumDialog from '../album/AlbumDialog.vue'
+import AlbumTreeItem from '../album/AlbumTreeItem.vue'
 import SmartAlbumDialog from '../album/SmartAlbumDialog.vue'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
 import { createLocalFileUrl } from '@shared/local-protocol'
@@ -70,118 +71,9 @@ async function loadCoverThumbnails(albums: Album[]) {
 
 onMounted(loadAlbums)
 
-// 递归树项组件
-const AlbumTreeItem = defineComponent({
-  name: 'AlbumTreeItem',
-  props: {
-    album: { type: Object as PropType<Album>, required: true },
-    depth: { type: Number, default: 0 }
-  },
-  setup(props) {
-    const router = useRouter()
-    const route = useRoute()
-    const { t } = useI18n()
-    const store = useAlbumsStore()
-
-    const coverUrls = computed(() => albumCoverUrls.value)
-    const renaming = computed(() => renamingId.value === props.album.id && renamingType.value === 'album')
-
-    function isActive() {
-      return route.path === `/album/${props.album.id}`
-    }
-
-    function navigate() {
-      router.push(`/album/${props.album.id}`)
-    }
-
-    function handleKeydown(e: KeyboardEvent) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault()
-        navigate()
-      }
-    }
-
-    function toggleCollapse(e: Event) {
-      e.stopPropagation()
-      store.setCollapsed(props.album.id, props.album.is_collapsed === 0)
-    }
-
-    function showContext(e: MouseEvent) {
-      e.preventDefault()
-      e.stopPropagation()
-      contextMenu.value = { visible: true, x: e.clientX, y: e.clientY, type: 'album', item: props.album }
-    }
-
-    return () => {
-      const album = props.album
-      const hasChildren = album.children && album.children.length > 0
-      const isCollapsed = album.is_collapsed === 1
-      const indent = props.depth * 16
-
-      const children = hasChildren && !isCollapsed
-        ? album.children!.map((child: Album) =>
-            h(AlbumTreeItem, { album: child, depth: props.depth + 1, key: child.id })
-          )
-        : []
-
-      const coverUrl = coverUrls.value.get(album.id)
-      const photoCount = album.photoCount
-
-      return h('div', [
-        h('div', {
-          class: [
-            'flex items-center gap-2 py-1.5 px-3 rounded-md cursor-pointer transition-colors text-xs outline-none focus:ring-1 focus:ring-accent/50',
-            isActive()
-              ? 'bg-accent-dim text-accent'
-              : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
-          ],
-          style: { paddingLeft: `${12 + indent}px` },
-          tabindex: '0',
-          role: 'link',
-          'aria-current': isActive() ? 'page' : undefined,
-          onClick: navigate,
-          onKeydown: handleKeydown,
-          onContextmenu: showContext
-        }, [
-          hasChildren
-            ? h(ChevronRight, {
-                size: 14,
-                class: ['shrink-0 transition-transform', isCollapsed ? '' : 'rotate-90'],
-                'aria-hidden': true,
-                onClick: toggleCollapse
-              })
-            : h('span', { class: 'w-3.5 shrink-0' }),
-          coverUrl
-            ? h('img', {
-                src: coverUrl,
-                class: 'w-5 h-5 rounded object-cover shrink-0',
-                alt: album.name
-              })
-            : h('span', { class: 'w-2 h-2 rounded-full bg-accent shrink-0', 'aria-hidden': true }),
-          renaming.value
-            ? h('span', { class: 'flex-1 min-w-0' }, [
-                h('input', {
-                  value: renameInput.value,
-                  'onUpdate:modelValue': (v: string) => { renameInput.value = v },
-                  onKeyup: (e: KeyboardEvent) => {
-                    if (e.key === 'Enter') confirmRename()
-                    if (e.key === 'Escape') cancelRename()
-                  },
-                  onBlur: confirmRename,
-                  class: 'w-full bg-bg-tertiary border border-accent/30 rounded px-1 py-0.5 text-xs text-text-primary outline-none',
-                  autofocus: true
-                })
-              ])
-            : h('span', { class: 'truncate flex-1 min-w-0' }, album.name),
-          photoCount != null && photoCount > 0
-            ? h('span', { class: 'text-[10px] text-text-muted shrink-0' }, t('album.photoCount', { count: photoCount }))
-            : null
-        ]),
-        ...children
-      ])
-    }
-  }
-})
+function handleAlbumTreeContext(e: MouseEvent, album: Album) {
+  contextMenu.value = { visible: true, x: e.clientX, y: e.clientY, type: 'album', item: album }
+}
 
 const navItems = [
   { icon: Image, labelKey: 'nav.allPhotos', route: '/' },
@@ -387,7 +279,7 @@ async function confirmDeleteAlbum() {
     <div class="h-px bg-white/5 mx-3 my-2" role="separator"></div>
 
     <div class="px-3 mb-2">
-      <div class="text-[10px] font-medium text-text-muted uppercase tracking-[1.5px] px-3 pb-1.5" role="heading" aria-level="2">管理</div>
+      <div class="text-[10px] font-medium text-text-muted uppercase tracking-[1.5px] px-3 pb-1.5" role="heading" aria-level="2">{{ $t('nav.manage') }}</div>
       <div v-for="item in manageItems" :key="item.route"
            @click="navigate(item.route)"
            @keydown="handleNavKeydown($event, item.route)"
@@ -432,7 +324,18 @@ async function confirmDeleteAlbum() {
 
       <!-- 手动相册（树状结构） -->
       <div class="text-[10px] font-medium text-text-muted uppercase tracking-[1.5px] px-3 pb-1.5" role="heading" aria-level="2">{{ $t('nav.albums') }}</div>
-      <AlbumTreeItem v-for="album in albumTree" :key="album.id" :album="album" :depth="0" />
+      <AlbumTreeItem
+        v-for="album in albumTree"
+        :key="album.id"
+        :album="album"
+        :depth="0"
+        :cover-url="albumCoverUrls.get(album.id)"
+        :is-renaming="renamingId === album.id && renamingType === 'album'"
+        @contextmenu="handleAlbumTreeContext"
+        @update:rename="(v: string) => renameInput = v"
+        @confirm-rename="confirmRename"
+        @cancel-rename="cancelRename"
+      />
       <button @click="showAlbumDialog = true"
               class="flex items-center gap-2 py-1.5 px-3 text-xs text-text-muted cursor-pointer hover:text-accent transition-colors w-full text-left">
         {{ $t('nav.newAlbum') }}

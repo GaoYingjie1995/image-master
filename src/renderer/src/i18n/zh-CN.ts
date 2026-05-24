@@ -31,7 +31,8 @@ export default {
     albums: '相册',
     newAlbum: '+ 新建相册',
     newSmartAlbum: '+ 新建智能相册',
-    importSources: '导入文件夹'
+    importSources: '导入文件夹',
+    manage: '管理'
   },
   toolbar: {
     date: '日期',

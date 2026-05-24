@@ -132,6 +132,44 @@ export function evaluateRules(rules: SmartAlbumRules, photo: Record<string, unkn
     : results.some(Boolean)
 }
 
+function extractDirStem(photo: Record<string, unknown>): { dir: string; stem: string } {
+  const filePath = String(photo.file_path || '')
+  const fileName = String(photo.file_name || '')
+  const dir = filePath.slice(0, Math.max(0, filePath.length - fileName.length)).toLowerCase()
+  const stem = fileName.replace(/\.[^.]+$/, '').toLowerCase()
+  return { dir, stem }
+}
+
+/** 将简单规则条件转为 SQL WHERE 片段（仅支持可下推的条件） */
+function buildSqlConditions(rules: SmartAlbumRules): { sql: string; params: unknown[] } {
+  const conditions: string[] = []
+  const params: unknown[] = []
+
+  for (const cond of rules.conditions) {
+    if (cond.field === 'rating' && cond.op === 'gte' && typeof cond.value === 'number') {
+      conditions.push('rating >= ?')
+      params.push(cond.value)
+    } else if (cond.field === 'rating' && cond.op === 'lte' && typeof cond.value === 'number') {
+      conditions.push('rating <= ?')
+      params.push(cond.value)
+    } else if (cond.field === 'rating' && cond.op === 'equals' && typeof cond.value === 'number') {
+      conditions.push('rating = ?')
+      params.push(cond.value)
+    } else if (cond.field === 'format' && cond.op === 'equals' && typeof cond.value === 'string') {
+      conditions.push('lower(format) = ?')
+      params.push(cond.value.toLowerCase())
+    } else if (cond.field === 'camera_model' && cond.op === 'equals' && typeof cond.value === 'string') {
+      conditions.push('camera_model = ?')
+      params.push(cond.value)
+    } else if (cond.field === 'is_rejected' && cond.op === 'equals' && typeof cond.value === 'boolean') {
+      conditions.push('is_rejected = ?')
+      params.push(cond.value ? 1 : 0)
+    }
+  }
+
+  return { sql: conditions.join(' AND '), params }
+}
+
 export function getSmartAlbumPhotos(db: Database.Database, albumId: number): Record<string, unknown>[] {
   const row = db.prepare('SELECT rules FROM smart_albums WHERE id = ?').get(albumId) as { rules: string } | undefined
   if (!row) return []
@@ -143,29 +181,27 @@ export function getSmartAlbumPhotos(db: Database.Database, albumId: number): Rec
     return []
   }
 
-  const photos = db.prepare('SELECT * FROM photos').all() as Record<string, unknown>[]
-  const renderableStemInDir = new Set<string>()
+  // 尝试将简单条件下推到 SQL，减少内存加载量
+  const { sql: whereSql, params } = buildSqlConditions(rules)
+  const query = whereSql
+    ? `SELECT * FROM photos WHERE ${whereSql}`
+    : 'SELECT * FROM photos'
+  const photos = db.prepare(query).all(...params) as Record<string, unknown>[]
 
+  // 构建可渲染文件的 dir::stem 集合（用于 RAW 隐藏逻辑）
+  const renderableStemInDir = new Set<string>()
   for (const photo of photos) {
     const format = String(photo.format || '').toLowerCase()
     if (isRawFormat(format)) continue
-    const filePath = String(photo.file_path || '')
-    const fileName = String(photo.file_name || '')
-    const dir = filePath.slice(0, Math.max(0, filePath.length - fileName.length)).toLowerCase()
-    const stem = fileName.replace(/\.[^.]+$/, '').toLowerCase()
+    const { dir, stem } = extractDirStem(photo)
     renderableStemInDir.add(`${dir}::${stem}`)
   }
 
   return photos.filter(photo => {
     const format = String(photo.format || '').toLowerCase()
     if (isRawFormat(format)) {
-      const filePath = String(photo.file_path || '')
-      const fileName = String(photo.file_name || '')
-      const dir = filePath.slice(0, Math.max(0, filePath.length - fileName.length)).toLowerCase()
-      const stem = fileName.replace(/\.[^.]+$/, '').toLowerCase()
-      if (renderableStemInDir.has(`${dir}::${stem}`)) {
-        return false
-      }
+      const { dir, stem } = extractDirStem(photo)
+      if (renderableStemInDir.has(`${dir}::${stem}`)) return false
     }
     return evaluateRules(rules, photo)
   })
