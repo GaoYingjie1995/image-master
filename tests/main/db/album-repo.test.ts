@@ -158,8 +158,14 @@ describe('AlbumRepo', () => {
       expect(repo.getTree()).toEqual([])
     })
 
-    it('should handle orphaned albums (parent_id references non-existent album)', () => {
-      repo.create({ name: 'Orphan', folder_path: '/orphan', parent_id: 9999, created_at: '2024-01-01' })
+    it('should handle orphaned albums (parent deleted, child remains)', () => {
+      const parentId = repo.create({ name: 'Parent', folder_path: '/parent', created_at: '2024-01-01' })
+      repo.create({ name: 'Orphan', folder_path: '/orphan', parent_id: parentId, created_at: '2024-01-01' })
+      // 删除父相册，ON DELETE CASCADE 会删除子相册
+      // 但如果我们临时关闭外键，可以模拟孤儿记录
+      db.pragma('foreign_keys = OFF')
+      db.prepare('DELETE FROM albums WHERE id = ?').run(parentId)
+      db.pragma('foreign_keys = ON')
       const tree = repo.getTree()
       expect(tree).toHaveLength(1)
       expect(tree[0].name).toBe('Orphan')
